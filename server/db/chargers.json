@@ -1,0 +1,19 @@
+{
+    "chargers": [
+        {
+            "id": 1,
+            "name": "Charger 1",
+            "status": "AVAILABLE"
+        },
+        {
+            "id": 2,
+            "name": "Charger 2",
+            "status": "OCCUPIED"
+        },
+        {
+            "id": 3,
+            "name": "Charger 3",
+            "status": "FAULTY"
+        }
+    ]
+}
