@@ -23,16 +23,19 @@ class ChargerServerLogic:
         self._logger = logging.getLogger(__name__)
         self.name = name
         self.component = component
+        self.client = component.mqtt_client
 
         # TODO: build the transitions
         t0 = {
             "source": "initial",
             "target": "selecting",
+            "effect": "show_chargers",
         }  # Initial state
         t1 = {
             "source": "selecting",
             "target": "charger_selected",
             "trigger": "select_charger",
+            "effect": "update_selected_charger(*)",
         }  # Charger selected
         t2 = {
             "source": "charging",
@@ -55,8 +58,38 @@ class ChargerServerLogic:
 
         self.stm = stmpy.Machine(name=name, transitions=[t0, t1, t2, t3, t4], obj=self)
 
-    def select_charger(self):
-        self._logger.debug("Selecting charger")
+    def show_chargers(self):
+        self._logger.debug("Showing chargers")
+        # Get the available chargers from the database
+        file_path = "server/db/chargers.json"
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            chargers = data["chargers"]
+            # Filter out the chargers that are already in use
+            for charger in chargers:
+                if charger["status"] != "AVAILABLE":
+                    chargers.remove(charger)
+            # Send a message with the chargers to the user
+            self.client.publish(MQTT_TOPIC_OUTPUT, "Chargers: {}".format(chargers))
+
+    def update_selected_charger(self, selected_charger: int):
+        self._logger.debug("Updating selected charger")
+        # Update the status of the selected charger in the database
+        file_path = "server/db/chargers.json"
+        print(selected_charger)
+
+        # Update the status of the selected charger in the database
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            for charger in data["chargers"]:
+                if charger["id"] == selected_charger:
+                    charger["status"] = "OCCUPIED"
+                    break
+
+        with open(file_path, "w") as file:
+            json.dump(data, file)
+
+        self.show_chargers()
 
     def pay(self):
         self._logger.debug("Paying")
@@ -72,151 +105,7 @@ class ChargerServerLogic:
         self.timer_thread.cancel()
 
 
-class ChargerComponent:
-    """
-    The component to manage the status of the chargers.
-
-    """
-
-    def on_connect(self, client, userdata, flags, rc):
-        # we just log that we are connected
-        self._logger.debug("MQTT connected to {}".format(client))
-
-    def on_message(self, client, userdata, msg):
-        """
-        Processes incoming MQTT messages.
-
-        We assume the payload of all received MQTT messages is an UTF-8 encoded
-        string, which is formatted as a JSON object. The JSON object contains
-        a field called `command` which identifies what the message should achieve.
-
-        As a reaction to a received message, we can for example do the following:
-
-        * create a new state machine instance to handle the incoming messages,
-        * route the message to an existing state machine session,
-        * handle the message right here,
-        * throw the message away.
-
-        """
-        self._logger.debug("Incoming message to topic {}".format(msg.topic))
-
-        # TODO unwrap JSON-encoded payload
-        payload = json.loads(msg.payload.decode("utf-8"))
-
-        # TODO extract command
-        command = payload["command"]
-        self._logger.debug("Received command: {}".format(command))
-
-        # TODO determine what to do
-
-        if command == "new_charger":
-            # create a new state machine for the timer
-            name = payload["name"]
-            duration = payload["duration"]
-            print(
-                "Creating new timer with name {} and duration {}".format(name, duration)
-            )
-            timer_logic = TimerLogic(name=name, duration=duration, component=self)
-
-            self.stm_driver.add_machine(timer_logic.stm)
-            timer_logic.stm.start_timer("t", duration)
-            self._logger.debug("Added state machine for timer {}".format(name))
-
-        elif command == "status_all_timers":
-            # send status of all timers
-            self._logger.debug("Sending status of all timers")
-            # Route the message to an existing state machine session and send status
-            print("Sending status of all timers")
-            print(self.stm_driver.print_status())
-
-            self.mqtt_client.publish(
-                MQTT_TOPIC_OUTPUT, json.dumps(self.stm_driver.print_status())
-            )
-
-        elif command == "status_single_timer":
-            # send status of a single timer
-            name = payload["name"]
-            self._logger.debug("Sending status of timer {}".format(name))
-            # Route the message to an existing state machine session and send status
-
-            stm = self.stm_driver._stms_by_id[name]
-
-            print(stm)
-            print(self.stm_driver._timer_queue)
-
-            self.mqtt_client.publish(
-                MQTT_TOPIC_OUTPUT,
-                json.dumps(self.stm_driver._get_timer("t", stm)),
-            )
-
-        elif command == "cancel_timer":
-            # cancel a single timer
-            name = payload["name"]
-            self._logger.debug("Cancelling timer {}".format(name))
-            # Route the message to an existing state machine session and cancel timer
-            stm = self.stm_driver._stms_by_id[name]
-            self.stm_driver._stop_timer("t", stm)
-            self.mqtt_client.publish(
-                MQTT_TOPIC_OUTPUT, "Timer {} has been cancelled".format(name)
-            )
-
-    def __init__(self):
-        """
-        Start the component.
-
-        ## Start of MQTT
-        We subscribe to the topic(s) the component listens to.
-        The client is available as variable `self.client` so that subscriptions
-        may also be changed over time if necessary.
-
-        The MQTT client reconnects in case of failures.
-
-        ## State Machine driver
-        We create a single state machine driver for STMPY. This should fit
-        for most components. The driver is available from the variable
-        `self.driver`. You can use it to send signals into specific state
-        machines, for instance.
-
-        """
-        # get the logger object for the component
-        self._logger = logging.getLogger(__name__)
-        print("logging under name {}.".format(__name__))
-        self._logger.info("Starting Component")
-
-        # create a new MQTT client
-        self._logger.debug(
-            "Connecting to MQTT broker {} at port {}".format(MQTT_BROKER, MQTT_PORT)
-        )
-        self.mqtt_client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION1
-        )
-        # callback methods
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-        # Connect to the broker
-        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        # subscribe to proper topic(s) of your choice
-        self.mqtt_client.subscribe(MQTT_TOPIC_INPUT)
-        # start the internal loop to process MQTT messages
-        self.mqtt_client.loop_start()
-
-        # we start the stmpy driver, without any state machines for now
-        self.stm_driver = stmpy.Driver()
-        self.stm_driver.start(keep_active=True)
-        self._logger.debug("Component initialization finished")
-
-    def stop(self):
-        """
-        Stop the component.
-        """
-        # stop the MQTT client
-        self.mqtt_client.loop_stop()
-
-        # stop the state machine Driver
-        self.stm_driver.stop()
-
-
-class UserManagementComponent:
+class ChargingSessionComponent:
     """
     Component for registering and managing users.
 
@@ -418,6 +307,27 @@ class UserManagementComponent:
                 "User with email {} does not exist in the database".format(email),
             )
 
+        elif command == "select_charger":
+            """
+            Recieve a message to select a charger. Data should include the user's email and the charger.
+            Then send a message to the charger server to select the charger.
+            """
+            if "email" in payload and "charger" in payload:
+                self._logger.debug(
+                    "Selecting charger {} for user with email {}".format(
+                        payload["charger"], payload["email"]
+                    )
+                )
+
+                self.stm_driver.send(
+                    message_id="select_charger",
+                    stm_id="session_" + payload["email"],
+                    args=[payload["charger"]],
+                )
+                return
+
+            self._logger.debug("Missing email or charger in payload")
+
     def stop(self):
         """
         Stop the component.
@@ -441,4 +351,4 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-t = UserManagementComponent()
+t = ChargingSessionComponent()
