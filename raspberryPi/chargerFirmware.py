@@ -13,9 +13,8 @@ white = (255,255,255)
 clear = (0,0,0)
 
 
-class charger(Thread):
+class charger:
     def __init__(self, chargerId, state = "idle"):
-        Thread.__init__(self, args=(chargerId, state))
         self.id = chargerId
         self.chargerState = state
         self.cableConnected = True
@@ -173,24 +172,27 @@ def main():
 
     
 
-    threads = [charger(i) for i in range(4)]
-    for thread in threads:
-        thread.start()
+    charger0 = Thread(targer = charger, args = (0))
+    charger1 = Thread(targer = charger, args = (1))
+    charger2 = Thread(targer = charger, args = (2))
+    charger3 = Thread(targer = charger, args = (3))
+    chargers = [charger0, charger1, charger2, charger3]
 
-    selection = Thread(target = selectCharger, args = (threads))
+
+    selection = Thread(target = selectCharger, args = (chargers))
     selection.start()
 
     run = True
 
     while run:
-        for i in threads:
-            if i.chargerState == "charging":
+        for i in chargers:
+            if i.getChargerState() == "charging":
                 i.chargingState()
-            elif i.chargerState == "error":
+            elif i.getChargerState() == "error":
                 i.errorState()
-            elif i.chargerState == "finished":
+            elif i.getChargerState() == "finished":
                 i.finishedState()
-            elif i.chargerState == "idle":
+            elif i.getChargerState() == "idle":
                 i.idleState()
     
 
