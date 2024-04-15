@@ -58,8 +58,8 @@ class charger:
         x = 1
         y = self.chargerId*2
         charger = self.chargerId
-        stateOfCharge = random.randint(1,7)
-        for i in range(0,stateOfCharge):
+        stateOfCharge = random.randint(1,6)
+        for i in range(1,stateOfCharge):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y+1, green)
             x = i
