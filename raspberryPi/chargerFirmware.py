@@ -180,15 +180,15 @@ def main():
     while run:
         for i in range(0,4):
             if chargerArray[i].getChargerState() == "charging":
-                chargerArray[i].startCharging()
+                chargerArray[i].chargingState()
             elif chargerArray[i].getChargerState() == "error":
-                chargerArray[i].error_charger()
+                chargerArray[i].errorState()
             elif chargerArray[i].getChargerState() == "finished":
-                chargerArray[i].finishedCharging()
-            else:
-
-        run = False
-
+                chargerArray[i].finishedState()
+            elif chargerArray[i].getChargerState() == "idle":
+                chargerArray[i].idleState()
+            
+            
 
 
 main()
