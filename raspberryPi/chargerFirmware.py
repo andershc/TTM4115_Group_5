@@ -38,6 +38,10 @@ class charger:
         #gjør noe her
         self.cableConnected = True
 
+    def disconnectCable(self):
+        #gjør noe her
+        self.cableConnected = False
+
     def chargerFsm(self):
         while True:
                 if self.getChargerState() == "charging":
@@ -119,8 +123,7 @@ class charger:
         x = 0
         y = self.chargerId*2
         while run:
-            event = sense.stick.wait_for_event()
-            if event.direction == "middle" and event.action == "pressed":
+            if self.cableConnected == False:
                 for i in range(1,8):
                     sense.set_pixel(i, y, clear)
                     sense.set_pixel(i, y+1, clear)
@@ -136,8 +139,13 @@ class charger:
 
 
 def startCharger(charger): 
-    charger.changeState("charging")
-    Thread(target = charger.chargerFsm).start()
+    if charger.getChargerState() == "finished":
+        charger.disconnectCable()
+    elif charger.getChargerState() == "idle":
+        charger.cableConnected = False
+        charger.changeState("charging")
+        charger.connectCable()
+        Thread(target = charger.chargerFsm).start()
 
 def selectCharger(chargers):
     while True:
@@ -176,7 +184,7 @@ def selectCharger(chargers):
                     run = False
             t.sleep(0.5)
 
-        startCharger(chargerArray[charger])
+        startStopCharger(chargerArray[charger])
 
 
     
