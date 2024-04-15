@@ -15,18 +15,29 @@ class charger:
     def __init__(self, chargerId, state = "idle"):
         self.id = chargerId
         self.chargerState = state
-        self.cableConnected = False
+        self.cableConnected = True
 
     def getConnected():
         return charger.cableConnected
     
     def getChargerState():
         return charger.chargerState
-    
+
+    def getChargerId():
+        return charger.chargerId
+
     def changeState(state):
         chargerState = state
-        
-    def startCharging():
+    
+    def connectCable():
+        #gjør noe her
+        charger.cableConnected = True
+
+    def chargingState():
+        if charger.cableConnected == False:
+            charger.changeState("idle")
+            raise Exception("ERROR, charging cable not connected")
+            
         run = True
         x = 1
         y = charger.chargerId*2
@@ -62,7 +73,7 @@ class charger:
                 run = False
         charger.changeState("finished")
     
-    def error_charger():
+    def errorState():
         print("Charging error on ", charger.charger_id)
         run = True
         x = 0
@@ -75,7 +86,7 @@ class charger:
             if (charger.getChargerState() == "idle"):
                 break
         
-    def finishedCharging():
+    def finishedState():
         print("Finished charging on charger ", charger.chargerId)
         run = True
         x = 0
@@ -86,6 +97,12 @@ class charger:
                 for i in range(0,8):
                     sense.set_pixel(i, y, clear)
                     sense.set_pixel(i, y+1, clear)
+    def idleState():
+        y = charger.id
+        for i in range(1,7):
+            sense.set_pixel(i, y, clear)
+            sense.set_pixel(i, y+1, clear)
+
 
 
 
@@ -168,6 +185,8 @@ def main():
                 chargerArray[i].error_charger()
             elif chargerArray[i].getChargerState() == "finished":
                 chargerArray[i].finishedCharging()
+            else:
+
         run = False
 
 
