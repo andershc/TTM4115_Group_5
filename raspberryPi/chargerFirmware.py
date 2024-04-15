@@ -172,10 +172,10 @@ def main():
 
     
 
-    charger0 = Thread(target = charger, args = (0))
-    charger1 = Thread(target = charger, args = (1))
-    charger2 = Thread(target = charger, args = (2))
-    charger3 = Thread(target = charger, args = (3))
+    charger0 = charger(0)
+    charger1 = charger(1)
+    charger2 = charger(2)
+    charger3 = charger(3)
     chargers = [charger0, charger1, charger2, charger3]
 
 
