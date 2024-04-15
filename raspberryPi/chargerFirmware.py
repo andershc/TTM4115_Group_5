@@ -138,7 +138,7 @@ class charger:
 
 
 
-def startCharger(charger): 
+def startStopCharger(charger): 
     if charger.getChargerState() == "finished":
         charger.disconnectCable()
     elif charger.getChargerState() == "idle":
