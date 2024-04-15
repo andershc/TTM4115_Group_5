@@ -2,6 +2,15 @@ from sense_hat import SenseHat
 import time as t
 import random 
 
+sense = SenseHat()
+
+red = (255,0,0)
+green = (0,255,0)
+blue = (0,0,255)
+white = (255,255,255)
+clear = (0,0,0)
+
+
 class charger:
     def __init__(self, chargerId, state = "idle"):
         self.id = chargerId
@@ -139,13 +148,9 @@ def selectCharger(chargers):
 
 def main():
 
-    red = (255,0,0)
-    green = (0,255,0)
-    blue = (0,0,255)
-    white = (255,255,255)
-    clear = (0,0,0)
+    
 
-    sense = SenseHat()
+   
     sense.clear()
     
     chargerArray = []
@@ -154,7 +159,6 @@ def main():
 
     run = True
 
-    
     selectCharger(chargerArray)
     while run:
         for i in range(0,4):
@@ -165,7 +169,7 @@ def main():
             elif chargerArray[i].getChargerState() == "finished":
                 chargerArray[i].finishedCharging()
         run = False
-        
+
 
 
 main()
