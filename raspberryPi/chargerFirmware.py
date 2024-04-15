@@ -22,7 +22,7 @@ class charger:
         self.chargerId = id
         self.chargerState = state
 
-    def getConnected(self):
+    def getCableConnected(self):
         return self.cableConnected
     
     def getChargerState(self):
@@ -72,8 +72,8 @@ class charger:
         run = True
         x = 1
         y = self.chargerId*2
-        stateOfCharge = random.randint(1,6)
-        for i in range(0,stateOfCharge):
+        initialSOC = random.randint(1,6)
+        for i in range(0,initialSOC):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y+1, green)
             x = i
@@ -82,6 +82,7 @@ class charger:
         sense.set_pixel(0, y+1, clear)
 
         x = x+1
+        currentSOC = initialSOC
         chargeTime = 0
         is_error = random.randint(0,11)
         if is_error == 5:
@@ -101,6 +102,9 @@ class charger:
                 sense.set_pixel(x, y, green)
                 sense.set_pixel(x, y+1, green)
                 chargeTime = chargeTime+1
+                if self.getCableConnected() == False:
+                    #send charging amount initialsoc - current soc
+                    break
             x = x+1
             chargeTime = 0
             if x == 8:
@@ -118,6 +122,7 @@ class charger:
         while run:
             print("error on charger ",self.chargerId)
             if (self.getChargerState() == "idle"):
+                self.changeState("finished")
                 break
         
     def finishedState(self):
@@ -138,14 +143,10 @@ class charger:
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y+1, clear)
 
-
-
-
 def startStopCharger(charger): 
     if charger.getChargerState() == "finished":
         charger.disconnectCable()
     elif charger.getChargerState() == "idle":
-        charger.cableConnected = False
         charger.changeState("charging")
         charger.connectCable()
         Thread(target = charger.chargerFsm).start()
@@ -183,11 +184,6 @@ def selectCharger(chargers):
             startStopCharger(chargerArray[charger])
         t.sleep(0.5)
 
-
-
-    
-
-
 def main():
     sense.clear()
     charger0 = charger(0)
@@ -196,13 +192,8 @@ def main():
     charger3 = charger(3)
     chargers = [charger0, charger1, charger2, charger3]
 
-
     selection = Thread(target = selectCharger(chargers))
     selection.start()
-
-
-        
-            
 
 
 main()
