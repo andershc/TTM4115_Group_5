@@ -1,8 +1,3 @@
-Idle
-Start_lading
-Ferdig_lading
-Error_lading
-
 from sense_hat import SenseHat
 import random 
 sense = SenseHat()
