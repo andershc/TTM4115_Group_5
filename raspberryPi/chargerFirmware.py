@@ -38,6 +38,17 @@ class charger:
         #gjør noe her
         self.cableConnected = True
 
+    def chargerFsm(self):
+        while True:
+                if self.getChargerState() == "charging":
+                    self.chargingState()
+                elif self.getChargerState() == "error":
+                    self.errorState()
+                elif self.getChargerState() == "finished":
+                    self.finishedState()
+                elif self.getChargerState() == "idle":
+                    self.idleState()
+
     def chargingState(self):
         if self.cableConnected == False:
             self.changeState("idle")
@@ -124,8 +135,9 @@ class charger:
 
 
 
-def changeChargerState(charger, state): 
+def startCharger(charger): 
     charger.changeState(state)
+    Thread(target = charger.chargerFsm).start()
 
 def selectCharger(chargers):
     while True:
@@ -164,27 +176,14 @@ def selectCharger(chargers):
                     run = False
             t.sleep(0.5)
 
-        changeChargerState(chargerArray[charger], "charging")
+        startCharger(chargerArray[charger])
 
-def fsm(chargers):
-    while True:
-        for i in chargers:
-            if i.getChargerState() == "charging":
-                i.chargingState()
-            elif i.getChargerState() == "error":
-                i.errorState()
-            elif i.getChargerState() == "finished":
-                i.finishedState()
-            elif i.getChargerState() == "idle":
-                i.idleState()
+
     
 
 
 def main():
     sense.clear()
-
-    
-
     charger0 = charger(0)
     charger1 = charger(1)
     charger2 = charger(2)
@@ -194,9 +193,6 @@ def main():
 
     selection = Thread(target = selectCharger(chargers))
     selection.start()
-
-    stateMachine = Thread(target = fsm(chargers))
-    stateMachine.start()
 
 
         
