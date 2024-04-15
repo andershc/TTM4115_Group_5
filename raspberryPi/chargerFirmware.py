@@ -1,6 +1,8 @@
 from sense_hat import SenseHat
 import time as t
 import random 
+import logging
+from threading import Thread
 
 sense = SenseHat()
 
@@ -11,8 +13,9 @@ white = (255,255,255)
 clear = (0,0,0)
 
 
-class charger:
+class charger(Thread):
     def __init__(self, chargerId, state = "idle"):
+        Thread.__init__(self, args=(chargerId, state))
         self.id = chargerId
         self.chargerState = state
         self.cableConnected = True
@@ -97,6 +100,8 @@ class charger:
                 for i in range(0,8):
                     sense.set_pixel(i, y, clear)
                     sense.set_pixel(i, y+1, clear)
+        charger.changeState("idle")
+
     def idleState():
         y = charger.id
         for i in range(1,7):
@@ -141,7 +146,7 @@ def selectCharger(chargers):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y+1, white)
         elif event.direction == "middle" and event.action == "pressed":
-            if getConnected() == "connected":
+            if chargers[charger].getConnected() == "connected":
                 run = False
             else:
                 print("Error: charger not connected")
@@ -158,36 +163,40 @@ def selectCharger(chargers):
                 sense.set_pixel(x, y+1, white)
         t.sleep(0.5)
 
-    changeChargerState(chargerArray[charger], "charging")
+    changeChargerState(chargers[charger], "charging")
 
 
     
 
 def main():
-
-    
-
-   
     sense.clear()
+
     
-    chargerArray = []
-    for i in range(0,4):
-        chargerArray.append(charger(i, "idle"))
+
+    threads = [charger(i) for i in range(4)]
+    for thread in threads:
+        thread.start()
+
+    selection = Thread(target = selectCharger, args = (threads))
+    selection.start()
 
     run = True
 
-    selectCharger(chargerArray)
     while run:
-        for i in range(0,4):
-            if chargerArray[i].getChargerState() == "charging":
-                chargerArray[i].chargingState()
-            elif chargerArray[i].getChargerState() == "error":
-                chargerArray[i].errorState()
-            elif chargerArray[i].getChargerState() == "finished":
-                chargerArray[i].finishedState()
-            elif chargerArray[i].getChargerState() == "idle":
-                chargerArray[i].idleState()
-            
+        for i in threads:
+            if i.chargerState == "charging":
+                i.chargingState()
+            elif i.chargerState == "error":
+                i.errorState()
+            elif i.chargerState == "finished":
+                i.finishedState()
+            elif i.chargerState == "idle":
+                i.idleState()
+    
+
+
+
+        
             
 
 
