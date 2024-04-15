@@ -136,7 +136,7 @@ class charger:
 
 
 def startCharger(charger): 
-    charger.changeState(state)
+    charger.changeState("charging")
     Thread(target = charger.chargerFsm).start()
 
 def selectCharger(chargers):
