@@ -12,7 +12,6 @@ blue = (0,0,255)
 white = (255,255,255)
 clear = (0,0,0)
 
-
 class charger:
     chargerId = 0 
     chargerState = "idle"
@@ -96,11 +95,6 @@ class charger:
                 sense.set_pixel(x, y, green)
                 sense.set_pixel(x, y+1, green)
                 t.sleep(1)
-                sense.set_pixel(x, y, clear)
-                sense.set_pixel(x, y+1, clear)
-                t.sleep(0.5)
-                sense.set_pixel(x, y, green)
-                sense.set_pixel(x, y+1, green)
                 chargeTime = chargeTime+1
                 if self.getCableConnected() == False:
                     #send charging amount initialsoc - current soc
@@ -198,7 +192,7 @@ def main():
     selection = Thread(target = selectCharger(chargers))
     selection.start()
 
-    #legge til mqtt broker
-    #legge til statemachine fra statemachine py 
+    #legge til mqtt broker funcksjon
+    #legge til statemachine fra stmpy i charger classen 
 
 main()
