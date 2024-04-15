@@ -1,1 +1,1 @@
-{"chargers": [{"id": 1, "name": "Charger 1", "status": "OCCUPIED"}, {"id": 2, "name": "Charger 2", "status": "OCCUPIED"}, {"id": 3, "name": "Charger 3", "status": "FAULTY"}]}
+{"chargers": [{"id": 0, "name": "Charger 1", "status": "CHARGING", "startedBy": "anders.heftoy@gmail.com", "startedAt": ""}, {"id": 1, "name": "Charger 2", "status": "AVAILABLE", "startedBy": "", "startedAt": ""}, {"id": 2, "name": "Charger 3", "status": "FAULTY", "startedBy": "", "startTime": ""}, {"id": 3, "name": "Charger 4", "status": "AVAILABLE", "startedBy": "", "startedAt": ""}]}

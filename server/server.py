@@ -1,9 +1,11 @@
+import datetime
 import uuid
 import paho.mqtt.client as mqtt
 import stmpy
 import logging
 from threading import Thread
 import json
+from httpServer import app
 
 # TODO: choose proper MQTT broker address
 MQTT_BROKER = "broker.hivemq.com"
@@ -12,6 +14,7 @@ MQTT_PORT = 1883
 # TODO: choose proper topics for communication
 MQTT_TOPIC_INPUT = "ttm4115/team_05/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/answer"
+MQTT_CHARGER_STATUS = "ttm4115/team_05/charger_status"
 
 
 class ChargerServerLogic:
@@ -47,7 +50,7 @@ class ChargerServerLogic:
             "source": "charger_selected",
             "target": "charging",
             "trigger": "pay",
-            "effect": "start_charging",
+            "effect": "start_charging(*)",
         }  # Payment done
         t4 = {
             "source": "charger_selected",
@@ -64,26 +67,29 @@ class ChargerServerLogic:
         file_path = "server/db/chargers.json"
         with open(file_path, "r") as file:
             data = json.load(file)
-            chargers = data["chargers"]
-            # Filter out the chargers that are already in use
-            for charger in chargers:
-                if charger["status"] != "AVAILABLE":
-                    chargers.remove(charger)
             # Send a message with the chargers to the user
-            self.client.publish(MQTT_TOPIC_OUTPUT, "Chargers: {}".format(chargers))
+            self.client.publish(MQTT_CHARGER_STATUS, json.dumps(data))
 
-    def update_selected_charger(self, selected_charger: int):
+    def update_selected_charger(self, selected_charger: int, email: str):
         self._logger.debug("Updating selected charger")
         # Update the status of the selected charger in the database
         file_path = "server/db/chargers.json"
-        print(selected_charger)
 
         # Update the status of the selected charger in the database
         with open(file_path, "r") as file:
             data = json.load(file)
             for charger in data["chargers"]:
+                if type(selected_charger) == str:
+                    selected_charger = int(selected_charger)
                 if charger["id"] == selected_charger:
+                    self._logger.debug(
+                        "Updating charger with ID {} to OCCUPIED".format(
+                            selected_charger
+                        )
+                    )
+                    print("EMAIL ", email)
                     charger["status"] = "OCCUPIED"
+                    charger["startedBy"] = email
                     break
 
         with open(file_path, "w") as file:
@@ -93,16 +99,53 @@ class ChargerServerLogic:
 
     def pay(self):
         self._logger.debug("Paying")
+        # Update the status of the selected charger in the database
 
     def disconnect_charger(self):
         self._logger.debug("Disconnecting charger")
 
-    def start_charging(self):
+    def start_charging(self, charger_id: int):
         self._logger.debug("Starting charging")
+        # Start a timer for the charging session
+        file_path = "server/db/chargers.json"
+
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            for charger in data["chargers"]:
+                if type(charger_id) == str:
+                    charger_id = int(charger_id)
+
+                if charger["id"] == charger_id:
+                    self._logger.debug(
+                        "Updating charger with ID {} to CHARGING".format(charger["id"])
+                    )
+                    charger["status"] = "CHARGING"
+                    break
+
+        with open(file_path, "w") as file:
+            json.dump(data, file)
+
+        self.stm.start_timer("t", 20000)
+        self.send_status_update()
 
     def stop_charging(self):
         self._logger.debug("Stopping charging")
         self.timer_thread.cancel()
+
+        # Publish the charger status to the user
+        self.send_status_update()
+
+    def send_status_update(self):
+        file_path = "server/db/chargers.json"
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            self.client.publish(MQTT_CHARGER_STATUS, json.dumps(data))
+
+    def report_status(self):
+        self._logger.debug("Checking timer status.".format(self.name))
+        time = int(self.stm.get_timer("t") / 1000)
+        message = "Timer {} has about {} seconds left".format(self.name, time)
+        self.component.mqtt_client.publish(MQTT_TOPIC_OUTPUT, message)
 
 
 class ChargingSessionComponent:
@@ -138,9 +181,7 @@ class ChargingSessionComponent:
         self._logger.debug(
             "Connecting to MQTT broker {} at port {}".format(MQTT_BROKER, MQTT_PORT)
         )
-        self.mqtt_client = mqtt.Client(
-            callback_api_version=mqtt.CallbackAPIVersion.VERSION1
-        )
+        self.mqtt_client = mqtt.Client()
         # callback methods
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_message = self.on_message
@@ -322,11 +363,54 @@ class ChargingSessionComponent:
                 self.stm_driver.send(
                     message_id="select_charger",
                     stm_id="session_" + payload["email"],
-                    args=[payload["charger"]],
+                    args=[payload["charger"], payload["email"]],
                 )
+                # Publish the charger status to the user
+                file_path = "server/db/chargers.json"
+                with open(file_path, "r") as file:
+                    data = json.load(file)
+                    chargers = data["chargers"]
+                    for charger in chargers:
+                        if charger["id"] == payload["charger"]:
+                            self.mqtt_client.publish(
+                                MQTT_CHARGER_STATUS,
+                                "Charger status: {}".format(charger["status"]),
+                            )
+                            return
                 return
 
             self._logger.debug("Missing email or charger in payload")
+
+        elif command == "pay":
+            """
+            Recieve a message to pay for a charger. Data should include the user's email.
+            Then send a message to the charger server to pay for the charger.
+            """
+            if "email" in payload:
+                self._logger.debug(
+                    "Paying for charger for user with email {}".format(payload["email"])
+                )
+
+                self.stm_driver.send(
+                    message_id="pay",
+                    stm_id="session_" + payload["email"],
+                    args=[payload["charger"]],
+                )
+
+                return
+
+            self._logger.debug("Missing email in payload")
+
+        elif command == "status_all_chargers":
+            # send status of all timers
+            self._logger.debug("Sending status of all chargers")
+            # Route the message to an existing state machine session and send status
+            print("Sending status of all chargers")
+            print(self.stm_driver.print_status())
+
+            self.mqtt_client.publish(
+                MQTT_TOPIC_OUTPUT, json.dumps(self.stm_driver.print_status())
+            )
 
     def stop(self):
         """
@@ -352,3 +436,5 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 t = ChargingSessionComponent()
+# Run the HTTP server
+app.run(port=8080)
