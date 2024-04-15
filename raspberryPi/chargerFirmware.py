@@ -1,33 +1,94 @@
 from sense_hat import SenseHat
 import time as t
 import random 
-sense = SenseHat()
 
-red = (255,0,0)
-green = (0,255,0)
-blue = (0,0,255)
-white = (255,255,255)
-clear = (0,0,0)
-sense.clear()
-chargerState = "idle"
-def getConnected():
-    return "connected"
+class charger:
+    def __init__(self, chargerId, state = "idle"):
+        self.id = chargerId
+        self.chargerState = state
+        self.cableConnected = False
 
-def getChargerState(charger):
-    return chargerState
-
-def changeState(state):
-    chargerState = state
-    print(chargerState)
+    def getConnected():
+        return charger.cableConnected
     
-def checkForConnection():
-    print("check for connection")
+    def getChargerState():
+        return charger.chargerState
+    
+    def changeState(state):
+        chargerState = state
+        
+    def startCharging():
+        run = True
+        x = 1
+        y = charger.chargerId*2
+        charger = charger.hargerId
+        stateOfCharge = random.randint(1,7)
+        for i in range(0,stateOfCharge):
+            sense.set_pixel(i, y, green)
+            sense.set_pixel(i, y+1, green)
+            x = i
+        x = x+1
+        chargeTime = 0
+        is_error = random.randint(0,11)
+        if is_error == 5:
+            charger.changeState("error")
+        print("Started charging on charger ", charger.charger_id)
+        while run:
+            while chargeTime!= 5:
+                sense.set_pixel(x, y, clear)
+                sense.set_pixel(x, y+1, clear)
+                t.sleep(0.5)
+                sense.set_pixel(x, y, green)
+                sense.set_pixel(x, y+1, green)
+                t.sleep(1)
+                sense.set_pixel(x, y, clear)
+                sense.set_pixel(x, y+1, clear)
+                t.sleep(0.5)
+                sense.set_pixel(x, y, green)
+                sense.set_pixel(x, y+1, green)
+                chargeTime = chargeTime+1
+            x = x+1
+            chargeTime = 0
+            if x == 8:
+                run = False
+        charger.changeState("finished")
+    
+    def error_charger():
+        print("Charging error on ", charger.charger_id)
+        run = True
+        x = 0
+        y = charger.charger_id*2
+        for i in range(1,8):
+            sense.set_pixel(i, y, red)
+            sense.set_pixel(i, y+1, red)
+        while run:
+            print("error on charger ",charger.charger_id)
+            if (charger.getChargerState() == "idle"):
+                break
+        
+    def finishedCharging():
+        print("Finished charging on charger ", charger.chargerId)
+        run = True
+        x = 0
+        y = charger.chargerId*2
+        while run:
+            event = sense.stick.wait_for_event()
+            if event.direction == "middle" and event.action == "pressed":
+                for i in range(0,8):
+                    sense.set_pixel(i, y, clear)
+                    sense.set_pixel(i, y+1, clear)
 
-def select_charger(charger_id = 0):
+
+
+def changeChargerState(charger, state): 
+    charger.changeState(state)
+
+def selectCharger(chargers):
     run = True
     x = 0
-    y = charger_id*2
-    charger = charger_id
+    y = 0
+    charger = 0
+    chargerArray = chargers 
     sense.set_pixel(x, y, white)
     sense.set_pixel(x, y+1, white)
 
@@ -71,75 +132,40 @@ def select_charger(charger_id = 0):
                 sense.set_pixel(x, y+1, white)
         t.sleep(0.5)
 
-    changeState("charging")
-    start_charging(charger)
-
-def start_charging(charger_id):
-    run = True
-    x = 0
-    y = charger_id*2
-    charger = charger_id
-    stateOfCharge = random.randint(1,6)
-    for i in range(0,stateOfCharge):
-        sense.set_pixel(i, y, green)
-        sense.set_pixel(i, y+1, green)
-        x = i
-    x = x+1
-    chargeTime = 0
-    is_error = random.randint(0,11)
-    if is_error == 5:
-        changeState(error_charger(charger))
-    print("Started charging on charger ", charger_id)
-    while run:
-        while chargeTime!= 5:
-            sense.set_pixel(x, y, clear)
-            sense.set_pixel(x, y+1, clear)
-            t.sleep(0.5)
-            sense.set_pixel(x, y, green)
-            sense.set_pixel(x, y+1, green)
-            t.sleep(1)
-            sense.set_pixel(x, y, clear)
-            sense.set_pixel(x, y+1, clear)
-            t.sleep(0.5)
-            sense.set_pixel(x, y, green)
-            sense.set_pixel(x, y+1, green)
-            chargeTime = chargeTime+1
-        x = x+1
-        chargeTime = 0
-        if x == 8:
-            run = False
-    finished_charging(charger)
+    changeChargerState(chargerArray[charger], "charging")
 
 
-def error_charger(charger_id):
-    print("Charging error on ", charger_id)
-    run = True
-    x = 0
-    y = charger_id*2
-    for i in range(1,8):
-        sense.set_pixel(i, y, red)
-        sense.set_pixel(i, y+1, red)
-    changeState("error")
-    while run:
-        print("error loop")
-        
     
-    
-
-def finished_charging(charger_id):
-    print("Finished charging on charger ", charger_id)
-    run = True
-    x = 0
-    y = charger_id*2
-    changeState("finished")
-    while run:
-        event = sense.stick.wait_for_event()
-        if event.direction == "middle" and event.action == "pressed":
-            for i in range(0,8):
-                sense.set_pixel(i, y, clear)
-                sense.set_pixel(i, y+1, clear)
 
 def main():
-    select_charger()
+
+    red = (255,0,0)
+    green = (0,255,0)
+    blue = (0,0,255)
+    white = (255,255,255)
+    clear = (0,0,0)
+
+    sense = SenseHat()
+    sense.clear()
+    
+    chargerArray = []
+    for i in range(0,4):
+        chargerArray.append(charger(i, "idle"))
+
+    run = True
+
+    
+    selectCharger(chargerArray)
+    while run:
+        for i in range(0,4):
+            if chargerArray[i].getChargerState() == "charging":
+                chargerArray[i].startCharging()
+            elif chargerArray[i].getChargerState() == "error":
+                chargerArray[i].error_charger()
+            elif chargerArray[i].getChargerState() == "finished":
+                chargerArray[i].finishedCharging()
+        run = False
+        
+
 
 main()
