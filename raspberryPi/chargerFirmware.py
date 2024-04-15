@@ -18,7 +18,7 @@ class charger:
     chargerState = "idle"
     cableConnected = True
 
-    def __init__(self, id, state):
+    def __init__(self, id, state = "idle"):
         self.chargerId = id
         self.chargerState = state
 
