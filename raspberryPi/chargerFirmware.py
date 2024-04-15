@@ -166,8 +166,19 @@ def selectCharger(chargers):
 
         changeChargerState(chargerArray[charger], "charging")
 
-
+def fsm(chargers):
+    while True:
+        for i in chargers:
+            if i.getChargerState() == "charging":
+                i.chargingState()
+            elif i.getChargerState() == "error":
+                i.errorState()
+            elif i.getChargerState() == "finished":
+                i.finishedState()
+            elif i.getChargerState() == "idle":
+                i.idleState()
     
+
 
 def main():
     sense.clear()
@@ -184,20 +195,8 @@ def main():
     selection = Thread(target = selectCharger(chargers))
     selection.start()
 
-    run = True
-
-    while run:
-        for i in chargers:
-            if i.getChargerState() == "charging":
-                i.chargingState()
-            elif i.getChargerState() == "error":
-                i.errorState()
-            elif i.getChargerState() == "finished":
-                i.finishedState()
-            elif i.getChargerState() == "idle":
-                i.idleState()
-    
-
+    stateMachine = Thread(target = fsm(chargers))
+    stateMachine.start()
 
 
         
