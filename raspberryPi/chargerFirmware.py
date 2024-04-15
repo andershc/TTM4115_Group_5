@@ -148,15 +148,14 @@ def startStopCharger(charger):
         Thread(target = charger.chargerFsm).start()
 
 def selectCharger(chargers):
+    x = 0
+    y = 0
+    charger = 0
+    chargerArray = chargers 
+    run = True
     while True:
-        run = True
-        x = 0
-        y = 0
-        charger = 0
-        chargerArray = chargers 
         sense.set_pixel(x, y, white)
         sense.set_pixel(x, y+1, white)
-
         while run:
             event = sense.stick.wait_for_event()
             if event.direction == "up" and event.action == "pressed":
