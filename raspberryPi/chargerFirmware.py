@@ -77,6 +77,10 @@ class charger:
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y+1, green)
             x = i
+        
+        sense.set_pixel(0, y, clear)
+        sense.set_pixel(0, y+1, clear)
+
         x = x+1
         chargeTime = 0
         is_error = random.randint(0,11)
