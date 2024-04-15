@@ -104,6 +104,7 @@ class charger:
                 chargeTime = chargeTime+1
                 if self.getCableConnected() == False:
                     #send charging amount initialsoc - current soc
+                    run = False
                     break
             x = x+1
             chargeTime = 0
@@ -197,5 +198,7 @@ def main():
     selection = Thread(target = selectCharger(chargers))
     selection.start()
 
+    #legge til mqtt broker
+    #legge til statemachine fra statemachine py 
 
 main()
