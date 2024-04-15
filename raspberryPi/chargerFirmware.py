@@ -131,7 +131,7 @@ class charger:
 
     def idleState(self):
         y = self.chargerId
-        for i in range(1,7):
+        for i in range(1,8):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y+1, clear)
 
