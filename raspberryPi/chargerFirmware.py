@@ -72,9 +72,8 @@ class charger:
         run = True
         x = 1
         y = self.chargerId*2
-        charger = self.chargerId
         stateOfCharge = random.randint(1,6)
-        for i in range(1,stateOfCharge):
+        for i in range(0,stateOfCharge):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y+1, green)
             x = i
@@ -152,7 +151,8 @@ def selectCharger(chargers):
     y = 0
     charger = 0
     chargerArray = chargers 
-  
+    sense.set_pixel(x, y, white)
+    sense.set_pixel(x, y+1, white)
     while True:
         event = sense.stick.wait_for_event()
         if event.direction == "up" and event.action == "pressed":
