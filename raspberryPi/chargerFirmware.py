@@ -146,7 +146,7 @@ def selectCharger(chargers):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y+1, white)
         elif event.direction == "middle" and event.action == "pressed":
-            if chargers[charger].getConnected() == "connected":
+            if chargerArray[charger].getConnected() == "connected":
                 run = False
             else:
                 print("Error: charger not connected")
@@ -163,7 +163,7 @@ def selectCharger(chargers):
                 sense.set_pixel(x, y+1, white)
         t.sleep(0.5)
 
-    changeChargerState(chargers[charger], "charging")
+    changeChargerState(chargerArray[charger], "charging")
 
 
     
