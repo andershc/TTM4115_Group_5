@@ -41,6 +41,17 @@ class charger:
     def chargingState(self):
         if self.cableConnected == False:
             self.changeState("idle")
+            sense.set_pixel(x, y, red)
+            sense.set_pixel(x, y+1, red)
+            t.sleep(0.5)
+            sense.set_pixel(x, y, white)
+            sense.set_pixel(x, y+1, white)
+            t.sleep(0.5)
+            sense.set_pixel(x, y, red)
+            sense.set_pixel(x, y+1, red)
+            t.sleep(0.5)
+            sense.set_pixel(x, y, white)
+            sense.set_pixel(x, y+1, white)
             raise Exception("ERROR, charging cable not connected")
             
         run = True
@@ -148,21 +159,8 @@ def selectCharger(chargers):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y+1, white)
         elif event.direction == "middle" and event.action == "pressed":
-            if chargerArray[charger].getConnected() == "connected":
+            if chargerArray[charger].getConnected():
                 run = False
-            else:
-                print("Error: charger not connected")
-                sense.set_pixel(x, y, red)
-                sense.set_pixel(x, y+1, red)
-                t.sleep(0.5)
-                sense.set_pixel(x, y, white)
-                sense.set_pixel(x, y+1, white)
-                t.sleep(0.5)
-                sense.set_pixel(x, y, red)
-                sense.set_pixel(x, y+1, red)
-                t.sleep(0.5)
-                sense.set_pixel(x, y, white)
-                sense.set_pixel(x, y+1, white)
         t.sleep(0.5)
 
     changeChargerState(chargerArray[charger], "charging")
