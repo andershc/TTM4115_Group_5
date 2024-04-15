@@ -78,15 +78,15 @@ class charger:
             sense.set_pixel(i, y+1, green)
             x = i
         
-        sense.set_pixel(0, y, clear)
-        sense.set_pixel(0, y+1, clear)
+        sense.set_pixel(0, y, white)
+        sense.set_pixel(0, y+1, white)
 
         x = x+1
         currentSOC = initialSOC
         chargeTime = 0
         is_error = random.randint(0,11)
         if is_error == 5:
-            self.changeState("error")
+            self.changeState("ERROR")
         print("Started charging on charger ", self.chargerId)
         while run:
             while chargeTime!= 5:
@@ -145,6 +145,8 @@ class charger:
 
 def startStopCharger(charger): 
     if charger.getChargerState() == "finished":
+        charger.disconnectCable()
+    elif charger.getChargerState() == "charging":
         charger.disconnectCable()
     elif charger.getChargerState() == "idle":
         charger.changeState("charging")
