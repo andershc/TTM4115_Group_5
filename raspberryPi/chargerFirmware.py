@@ -1,6 +1,7 @@
 from sense_hat import SenseHat
 import time as t
 import random 
+import pyudev
 sense = SenseHat()
 
 red = (255,0,0)
@@ -22,6 +23,19 @@ def changeState(state):
     
 def checkForConnection():
     print("check for connection")
+    context = pyudev.Context()
+    monitor = pyudev.Monitor.from_netlink(context)
+    monitor.filter_by(subsystem='usb')
+    monitor.start()
+
+    for device in iter(monitor.poll, None):
+        if device.action == 'add':
+            # Here you can check if the device added is your expected device (e.g., checking device attributes)
+            print(f"Charging car connected: {device}")
+            return True
+        elif device.action == 'remove':
+            print("Charging car disconnected")
+            return False
 
 def select_charger(charger_id = 0):
     run = True
