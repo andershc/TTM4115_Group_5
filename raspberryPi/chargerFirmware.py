@@ -152,38 +152,33 @@ def selectCharger(chargers):
     y = 0
     charger = 0
     chargerArray = chargers 
-    run = True
+  
     while True:
-        sense.set_pixel(x, y, white)
-        sense.set_pixel(x, y+1, white)
-        while run:
-            event = sense.stick.wait_for_event()
-            if event.direction == "up" and event.action == "pressed":
-                sense.set_pixel(x, y, clear)
-                sense.set_pixel(x, y+1, clear)
-                y = y-2
-                charger = charger-1
-                if y < 0:
-                    y = 6
-                    charger = 3
-                sense.set_pixel(x, y, white)
-                sense.set_pixel(x, y+1, white)
-            elif event.direction == "down" and event.action == "pressed":
-                sense.set_pixel(x, y, clear)
-                sense.set_pixel(x, y+1, clear)
-                y = y+2
-                charger = charger+1
-                if y > 6:
-                    y = 0
-                    charger = 0
-                sense.set_pixel(x, y, white)
-                sense.set_pixel(x, y+1, white)
-            elif event.direction == "middle" and event.action == "pressed":
-                if chargerArray[charger].getConnected():
-                    run = False
-            t.sleep(0.5)
+        event = sense.stick.wait_for_event()
+        if event.direction == "up" and event.action == "pressed":
+            sense.set_pixel(x, y, clear)
+            sense.set_pixel(x, y+1, clear)
+            y = y-2
+            charger = charger-1
+            if y < 0:
+                y = 6
+                charger = 3
+            sense.set_pixel(x, y, white)
+            sense.set_pixel(x, y+1, white)
+        elif event.direction == "down" and event.action == "pressed":
+            sense.set_pixel(x, y, clear)
+            sense.set_pixel(x, y+1, clear)
+            y = y+2
+            charger = charger+1
+            if y > 6:
+                y = 0
+                charger = 0
+            sense.set_pixel(x, y, white)
+            sense.set_pixel(x, y+1, white)
+        elif event.direction == "middle" and event.action == "pressed":
+            startStopCharger(chargerArray[charger])
+        t.sleep(0.5)
 
-        startStopCharger(chargerArray[charger])
 
 
     
