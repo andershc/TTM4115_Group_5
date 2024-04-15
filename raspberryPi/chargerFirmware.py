@@ -14,36 +14,39 @@ clear = (0,0,0)
 
 
 class charger:
-    def __init__(self, chargerId, state = "idle"):
-        self.id = chargerId
+    chargerId = 0 
+    chargerState = "idle"
+    cableConnected = True
+
+    def __init__(self, id, state):
+        self.chargerId = id
         self.chargerState = state
+
+    def getConnected(self):
+        return self.cableConnected
+    
+    def getChargerState(self):
+        return self.chargerState
+
+    def getChargerId(self):
+        return self.chargerId
+
+    def changeState(self,state):
+        self.chargerState = state
+    
+    def connectCable(self):
+        #gjør noe her
         self.cableConnected = True
 
-    def getConnected():
-        return charger.cableConnected
-    
-    def getChargerState():
-        return charger.chargerState
-
-    def getChargerId():
-        return charger.chargerId
-
-    def changeState(state):
-        chargerState = state
-    
-    def connectCable():
-        #gjør noe her
-        charger.cableConnected = True
-
-    def chargingState():
-        if charger.cableConnected == False:
-            charger.changeState("idle")
+    def chargingState(self):
+        if self.cableConnected == False:
+            self.changeState("idle")
             raise Exception("ERROR, charging cable not connected")
             
         run = True
         x = 1
-        y = charger.chargerId*2
-        charger = charger.hargerId
+        y = self.chargerId*2
+        charger = self.chargerId
         stateOfCharge = random.randint(1,7)
         for i in range(0,stateOfCharge):
             sense.set_pixel(i, y, green)
@@ -53,8 +56,8 @@ class charger:
         chargeTime = 0
         is_error = random.randint(0,11)
         if is_error == 5:
-            charger.changeState("error")
-        print("Started charging on charger ", charger.charger_id)
+            self.changeState("error")
+        print("Started charging on charger ", self.chargerId)
         while run:
             while chargeTime!= 5:
                 sense.set_pixel(x, y, clear)
@@ -73,36 +76,36 @@ class charger:
             chargeTime = 0
             if x == 8:
                 run = False
-        charger.changeState("finished")
+        self.changeState("finished")
     
-    def errorState():
-        print("Charging error on ", charger.charger_id)
+    def errorState(self):
+        print("Charging error on ", self.chargerId)
         run = True
         x = 0
-        y = charger.charger_id*2
+        y = self.chargerId*2
         for i in range(1,8):
             sense.set_pixel(i, y, red)
             sense.set_pixel(i, y+1, red)
         while run:
-            print("error on charger ",charger.charger_id)
-            if (charger.getChargerState() == "idle"):
+            print("error on charger ",self.chargerId)
+            if (self.getChargerState() == "idle"):
                 break
         
-    def finishedState():
-        print("Finished charging on charger ", charger.chargerId)
+    def finishedState(self):
+        print("Finished charging on charger ", self.chargerId)
         run = True
         x = 0
-        y = charger.chargerId*2
+        y = self.chargerId*2
         while run:
             event = sense.stick.wait_for_event()
             if event.direction == "middle" and event.action == "pressed":
                 for i in range(0,8):
                     sense.set_pixel(i, y, clear)
                     sense.set_pixel(i, y+1, clear)
-        charger.changeState("idle")
+        self.changeState("idle")
 
-    def idleState():
-        y = charger.id
+    def idleState(self):
+        y = self.chargerId
         for i in range(1,7):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y+1, clear)
