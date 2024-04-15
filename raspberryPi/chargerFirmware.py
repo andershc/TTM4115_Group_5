@@ -179,7 +179,7 @@ def main():
     chargers = [charger0, charger1, charger2, charger3]
 
 
-    selection = Thread(target = selectCharger, args = (chargers))
+    selection = Thread(target = selectCharger(chargers))
     selection.start()
 
     run = True
