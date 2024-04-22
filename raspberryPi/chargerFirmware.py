@@ -26,12 +26,13 @@ MQTT_TOPIC_INPUT = "ttm4115/team_05/charger/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger/answer"
 
 class ChargerStateMachine:
-    def __init__(self, charger):
+    def __init__(self, id, charger):
         self.charger = charger
+        self.id = id
         t_init = {
             "source": "initial",
             "target": "s_idle",
-            "effect": "idleState"
+            "effect": "idleState",
         } 
 
         t_idle_to_charging = {
@@ -67,13 +68,14 @@ class ChargerStateMachine:
             "trigger": "t_idleState",
             "effect": "idleState",
         }
-        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=self, name='stm_charger')
+        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=self, name=id)
    
     def t_chargingState(self):
-         print("Started charging on charger ", self.chargerId)
+         print("Started charging on charger ", self.charger.chargerId)
     def chargingState(self):
+        print("Started charging on charger ", self.charger.chargerId)
         self.charger.changeChargerState = "charging"
-        if self.cableConnected == False:
+        if self.charger.cableConnected == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
             t.sleep(0.5)
@@ -85,13 +87,13 @@ class ChargerStateMachine:
             t.sleep(0.5)
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
-            print("Cable not connected on charger ", self.chargerId)
+            print("Cable not connected on charger ", self.charger.chargerId)
             self.t_idleState()
             
 
         run = True
         x = 1
-        y = self.chargerId * 2
+        y = self.charger.chargerId * 2
         initialSOC = random.randint(1, 6)
         for i in range(0, initialSOC):
             sense.set_pixel(i, y, green)
@@ -129,7 +131,7 @@ class ChargerStateMachine:
         print("Charging error on ", self.charger.chargerId)
         run = True
         x = 0
-        y = self.chargerId * 2
+        y = self.charger.chargerId * 2
         for i in range(1, 8):
             sense.set_pixel(i, y, red)
             sense.set_pixel(i, y + 1, red)
@@ -209,10 +211,11 @@ class Charger:
         # gjør noe her
         self.cableConnected = False
 
-def selectCharger(chargerStateMachineArray,chargerArray):
+def selectCharger(driver,chargerStateMachineArray,chargerArray):
     x = 0
     y = 0
     charger = 0
+    sense.clear()
     sense.set_pixel(x, y, white)
     sense.set_pixel(x, y + 1, white)
     while True:
@@ -239,10 +242,11 @@ def selectCharger(chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
             chargerArray[charger].connectCable()
-            chargerStateMachineArray[charger].t_chargingState()
+            driver.send(message_id="t_chargingState",stm_id=charger)
+
             if chargerArray[charger].getChargerState() == "finished":
                 chargerArray[charger].disconnectCable()
-                chargerStateMachineArray[charger].t_idleState()
+                driver.send(message_id="t_idleState",stm_id=charger)
         t.sleep(0.5)
 
 
@@ -255,18 +259,17 @@ def main():
 
     driver = Driver()
 
-    chargerStateMachine0 = ChargerStateMachine( charger0)
-    chargerStateMachine1 = ChargerStateMachine( charger1)
-    chargerStateMachine2 = ChargerStateMachine( charger2)
-    chargerStateMachine3 = ChargerStateMachine( charger3)
+    chargerStateMachine0 = ChargerStateMachine(0,charger0)
+    chargerStateMachine1 = ChargerStateMachine(1, charger1)
+    chargerStateMachine2 = ChargerStateMachine(2, charger2)
+    chargerStateMachine3 = ChargerStateMachine(3, charger3)
     chargerStateMachineArray = [chargerStateMachine0, chargerStateMachine1, chargerStateMachine2, chargerStateMachine3]
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
-        driver.wait_until_finished()
 
     
-    selection = Thread(targer=selectCharger(chargerStateMachineArray,chargerArray))
+    selection = Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray))
     selection.start()
 
 main()
