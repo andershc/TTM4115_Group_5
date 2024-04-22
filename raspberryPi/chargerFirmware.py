@@ -27,6 +27,7 @@ MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger/answer"
 
 class ChargerStateMachine:
     def __init__(self, charger):
+        self.charger = charger
         t_init = {
             "source": "initial",
             "target": "s_idle",
@@ -66,7 +67,7 @@ class ChargerStateMachine:
             "trigger": "t_idleState",
             "effect": "idleState",
         }
-        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=charger, name='stm_charger')
+        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=self, name='stm_charger')
    
     def t_chargingState(self):
          print("Started charging on charger ", self.chargerId)
@@ -265,7 +266,7 @@ def main():
         driver.wait_until_finished()
 
     
-    selection = Thread(target=selectCharger(chargerStateMachineArray,chargerArray))
+    selection = Thread(targer=selectCharger(chargerStateMachineArray,chargerArray))
     selection.start()
 
 main()
