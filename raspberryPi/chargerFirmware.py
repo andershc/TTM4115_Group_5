@@ -254,9 +254,10 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
 
             
         t.sleep(0.5)
+
 def on_connect(self, client, userdata, flags, rc):
-        # we just log that we are connected
-        self._logger.debug("MQTT connected to {}".format(client))
+    # we just log that we are connected
+    print("on_connect:: connected with result code "+str(rc))
 
 def on_message(self, client, userdata, msg):
     pass
@@ -279,7 +280,7 @@ def check_charger_connection(chargerArray):
 
 
 def main():
-    mqtt_client = mqtt.Client()
+    mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
     # callback methods
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
