@@ -166,31 +166,7 @@ class Charger:
         self.cableConnected = True
         self.chargerId = id
         self.chargerState = state
-        '''
-        # Init the mqtt client
-        self._logger = logging.getLogger(__name__)
-        print("logging under name {}.".format(__name__))
-        self._logger.info("Starting Component")
-
-        # create a new MQTT client
-        self._logger.debug(
-            "Connecting to MQTT broker {} at port {}".format(MQTT_BROKER, MQTT_PORT)
-        )
-        self.mqtt_client = mqtt.Client()
-        # callback methods
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
-        # Connect to the broker
-        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-        # start the internal loop to process MQTT messages
-        self.mqtt_client.loop_start()
-
-
-    def publish_command(self, command):
-        payload = json.dumps(command)
-        self._logger.info(command)
-        self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=0)
-    ''' 
+        
     def getCableConnected(self):
         return self.cableConnected
 
@@ -241,14 +217,40 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
-            chargerArray[charger].connectCable()
-            driver.send(message_id="t_chargingState",stm_id=charger)
-
             if chargerArray[charger].getChargerState() == "finished":
                 chargerArray[charger].disconnectCable()
                 driver.send(message_id="t_idleState",stm_id=charger)
-        t.sleep(0.5)
+            chargerArray[charger].connectCable()
+            driver.send(message_id="t_chargingState",stm_id=charger)
 
+            
+        t.sleep(0.5)
+class mqtt_client:
+    '''
+        # Init the mqtt client
+        self._logger = logging.getLogger(__name__)
+        print("logging under name {}.".format(__name__))
+        self._logger.info("Starting Component")
+
+        # create a new MQTT client
+        self._logger.debug(
+            "Connecting to MQTT broker {} at port {}".format(MQTT_BROKER, MQTT_PORT)
+        )
+        self.mqtt_client = mqtt.Client()
+        # callback methods
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        # Connect to the broker
+        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+        # start the internal loop to process MQTT messages
+        self.mqtt_client.loop_start()
+
+
+    def publish_command(self, command):
+        payload = json.dumps(command)
+        self._logger.info(command)
+        self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=0)
+    ''' 
 
 def main():
     charger0 = Charger(0)
