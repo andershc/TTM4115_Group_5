@@ -64,11 +64,11 @@ export default function ChargersPage() {
       
       <div className="flex flex-col mt-2 items-center">
         <h2>Chargers</h2>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-row flex-wrap gap-2 items-center justify-center">
           {chargers.length === 0 ? 
           (<p>No chargers available</p>) :
           (chargers.map((charger: Charger) => (
-            <ChargerCard key={charger.name} charger={charger} handleSelectCharger={handleSelectCharger} />
+            <ChargerCard key={charger.name} userEmail={user?.email ?? ''} charger={charger} handleSelectCharger={handleSelectCharger} />
           )))
         }
         </div>
@@ -93,26 +93,42 @@ async function fetchChargers() {
   return data;
 }
 
-const ChargerCard = ({ charger, handleSelectCharger }: 
-{
-  charger: Charger, 
-  handleSelectCharger: (chargerId: string) => void
-}) => {
-  const backGroundColor = charger.status === "AVAILABLE" ? "bg-green-400" : (charger.status === "FAULTY" ? "bg-yellow-400" : "bg-red-400")
-  const cursor = charger.status === "AVAILABLE" ? "cursor-pointer" : "cursor-not-allowed"
-  const hover = charger.status === "AVAILABLE" ? "hover:bg-green-500" : ""
-  return (
-    <div onClick={() => handleSelectCharger(charger.id.toString())} className={`flex flex-row gap-2 ${backGroundColor} p-2 rounded ${cursor} ${hover}`}>
-      <h3>{charger.name}</h3>
-      <p>{charger.status}</p>
-    </div>
-  );
-}
-
 export type Charger = {
   id: number;
   name: string;
-  status: string;
+  status: 'AVAILABLE' | 'FAULTY' | 'CHARGING' | 'OCCUPIED';
   startedBy: string;
   startedAt: string;
+  totalChargingTime: number;
+};
+
+type ChargerCardProps = {
+  charger: Charger;
+  handleSelectCharger: (chargerId: string) => void;
+  userEmail: string;  // User's email to check if the charger is started by the user
+};
+
+const ChargerCard = ({ charger, handleSelectCharger, userEmail }: ChargerCardProps) => {
+  // Adjust the status based on charging state and who started the charging
+  const effectiveStatus = charger.status === "CHARGING" && charger.startedBy !== userEmail ? "OCCUPIED" : charger.status;
+
+  const backgroundColor = effectiveStatus === "AVAILABLE" ? "bg-green-400" :
+                          effectiveStatus === "FAULTY" ? "bg-yellow-400" :
+                          effectiveStatus === "CHARGING" ? "bg-blue-400" : "bg-red-400";
+  const cursor = effectiveStatus === "AVAILABLE" ? "cursor-pointer" : "cursor-not-allowed";
+  const hover = effectiveStatus === "AVAILABLE" ? "hover:bg-green-500" : "";
+
+  const handleClick = () => {
+    if (effectiveStatus === "AVAILABLE") {
+      handleSelectCharger(charger.id.toString());
+    }
+  };
+
+  return (
+    <div onClick={handleClick} className={`flex flex-col gap-2 ${backgroundColor} p-2 rounded ${cursor} ${hover}`}>
+      <h3>{charger.name}</h3>
+
+      <p>{effectiveStatus}</p>
+    </div>
+  );
 };

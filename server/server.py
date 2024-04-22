@@ -42,7 +42,7 @@ class ChargerServerLogic:
         }  # Charger selected
         t2 = {
             "source": "charging",
-            "target": "selecting",
+            "target": "charger_selected",
             "trigger": "t",
             "effect": "stop_charging",
         }  # Charging stopped
@@ -56,10 +56,18 @@ class ChargerServerLogic:
             "source": "charger_selected",
             "target": "selecting",
             "trigger": "disconnect_charger",
-            "effect": "disconnect_charger",
+            "effect": "send_status_update",
         }  # Charger disconnected
+        t5 = {
+            "source": "charging",
+            "target": "charger_selected",
+            "trigger": "cancel_charging",
+            "effect": "stop_charging",
+        }
 
-        self.stm = stmpy.Machine(name=name, transitions=[t0, t1, t2, t3, t4], obj=self)
+        self.stm = stmpy.Machine(
+            name=name, transitions=[t0, t1, t2, t3, t4, t5], obj=self
+        )
 
     def show_chargers(self):
         self._logger.debug("Showing chargers")
@@ -120,6 +128,8 @@ class ChargerServerLogic:
                         "Updating charger with ID {} to CHARGING".format(charger["id"])
                     )
                     charger["status"] = "CHARGING"
+                    charger["startedAt"] = datetime.datetime.now().isoformat()
+                    charger["totalChargingTime"] = 20000
                     break
 
         with open(file_path, "w") as file:
@@ -130,7 +140,25 @@ class ChargerServerLogic:
 
     def stop_charging(self):
         self._logger.debug("Stopping charging")
-        self.timer_thread.cancel()
+        # Update the status of the selected charger in the database
+        file_path = "server/db/chargers.json"
+        # Get name of state machine
+        email = self.name.split("_")[1]
+
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            for charger in data["chargers"]:
+                if charger["status"] == "CHARGING" and charger["startedBy"] == email:
+                    self._logger.debug(
+                        "Updating charger with ID {} to AVAILABLE".format(charger["id"])
+                    )
+                    charger["status"] = "OCCUPIED"
+                    charger["startedAt"] = None
+                    charger["totalChargingTime"] = None
+                    break
+
+        with open(file_path, "w") as file:
+            json.dump(data, file)
 
         # Publish the charger status to the user
         self.send_status_update()
@@ -147,10 +175,13 @@ class ChargerServerLogic:
         message = "Timer {} has about {} seconds left".format(self.name, time)
         self.component.mqtt_client.publish(MQTT_TOPIC_OUTPUT, message)
 
+    def cancel_charging(self):
+        self._logger.debug("Cancelling charger for {}".format(self.name))
+
 
 class ChargingSessionComponent:
     """
-    Component for registering and managing users.
+    Component for registering and managing users sessions.
 
     """
 
@@ -411,6 +442,52 @@ class ChargingSessionComponent:
             self.mqtt_client.publish(
                 MQTT_TOPIC_OUTPUT, json.dumps(self.stm_driver.print_status())
             )
+
+        elif command == "stop_charging":
+            """
+            Recieve a message to stop charging. Data should include the user's email.
+            Then send a message to the charger server to stop charging.
+            """
+            if "email" in payload:
+                self._logger.debug(
+                    "Stopping charging for user with email {}".format(payload["email"])
+                )
+
+                # Get the stm
+                stm_id = "session_" + payload["email"]
+                stm = self.stm_driver._stms_by_id[stm_id]
+                self.stm_driver._stop_timer(name="t", stm=stm)
+
+                self.stm_driver.send(
+                    message_id="cancel_charging",
+                    stm_id="session_" + payload["email"],
+                )
+
+                return
+
+            self._logger.debug("Missing email in payload")
+
+        elif command == "disconnect_charger":
+            """
+            Recieve a message to disconnect a charger. Data should include the user's email.
+            Then send a message to the charger server to disconnect the charger.
+            """
+            if "email" in payload:
+                self._logger.debug(
+                    "Disconnecting charger for user with email {}".format(
+                        payload["email"]
+                    )
+                )
+
+                self.stm_driver.send(
+                    message_id="disconnect_charger",
+                    stm_id="session_" + payload["email"],
+                    args=[payload["charger"]],
+                )
+
+                return
+
+            self._logger.debug("Missing email in payload")
 
     def stop(self):
         """
