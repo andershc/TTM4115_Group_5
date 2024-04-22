@@ -3,7 +3,7 @@ import time as t
 import random
 import logging
 from threading import Thread
-import paho.mqtt.client as mqtt
+#import paho.mqtt.client as mqtt
 import logging
 from threading import Thread
 import json
@@ -162,7 +162,7 @@ class Charger:
         self.cableConnected = True
         self.chargerId = id
         self.chargerState = state
-
+        '''
         # Init the mqtt client
         self._logger = logging.getLogger(__name__)
         print("logging under name {}.".format(__name__))
@@ -186,7 +186,7 @@ class Charger:
         payload = json.dumps(command)
         self._logger.info(command)
         self.mqtt_client.publish(MQTT_TOPIC_INPUT, payload=payload, qos=0)
-
+    ''' 
     def getCableConnected(self):
         return self.cableConnected
 
