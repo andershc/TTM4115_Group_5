@@ -7,8 +7,8 @@ from threading import Thread
 import logging
 from threading import Thread
 import json
-import server
-#from stmpy import Machine, Driver
+#import server
+from stmpy import Machine, Driver
 
 
 sense = SenseHat()
@@ -26,52 +26,52 @@ MQTT_TOPIC_INPUT = "ttm4115/team_05/charger/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger/answer"
 
 class ChargerStateMachine:
-    def __init__(self,id, charger):
+    def __init__(self, charger):
         t_init = {
             "source": "initial",
             "target": "s_idle",
-            "effect": "idleState(*)"
+            "effect": "idleState"
         } 
 
         t_idle_to_charging = {
             "source": "s_idle",
             "target": "s_charging",
             "trigger": "t_chargingState",
-            "effect": "chargingState(*)",
+            "effect": "chargingState",
         } 
             
         t_charging_to_error= {
             "source": "s_charging",
             "target": "s_error",
             "trigger": "t_errorState",
-            "effect": "errorState(*)",
+            "effect": "errorState",
         }  
         t_charging_to_idle= {
             "source": "s_charging",
             "target": "s_idle",
             "trigger": "t_idleState",
-            "effect": "idleState(*)",
+            "effect": "idleState",
         }
 
         t_charging_to_finished= {
             "source": "s_charging",
             "target": "s_finished",
             "trigger": "t_finished",
-            "effect": "finishedState(*)",
+            "effect": "finishedState",
         }  
 
         t_finished_to_idle= {
             "source": "s_finished",
             "target": "s_idle",
             "trigger": "t_idleState",
-            "effect": "idleState(*)",
+            "effect": "idleState",
         }
         self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=charger, name='stm_charger')
    
     def t_chargingState(self):
          print("Started charging on charger ", self.chargerId)
     def chargingState(self):
-        self.charger.chargerState = "charging"
+        self.charger.chagneChargerState = "charging"
         if self.cableConnected == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
@@ -124,7 +124,7 @@ class ChargerStateMachine:
     def t_errorState(self):
         print("error state")
     def errorState(self):
-        self.charger.chargerState = "error"
+        self.charger.chagneChargerState = "error"
         print("Charging error on ", self.charger.chargerId)
         run = True
         x = 0
@@ -136,7 +136,7 @@ class ChargerStateMachine:
     def t_finishedState(self):
         print("finished state")
     def finishedState(self):
-        self.charger.chargerState = "finished"
+        self.charger.chagneChargerState = "finished"
         print("Finished charging on charger ", self.charger.chargerId)
         run = True
         y = self.charger.chargerId * 2
@@ -151,7 +151,7 @@ class ChargerStateMachine:
     def t_idleState(self):
         print("idle state")
     def idleState(self):
-        self.charger.chargerState = "idle"
+        self.charger.chagneChargerState = "idle"
         y = self.charger.chargerId
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
@@ -196,7 +196,7 @@ class Charger:
     def getChargerId(self):
         return self.chargerId
     
-    def chargerState(self, state):
+    def chagneChargerState(self, state):
         self.chargerState = state
     
     def connectCable(self):
@@ -253,12 +253,12 @@ def main():
 
     driver = Driver()
 
-    chargerStateMachine0 = ChargerStateMachine(0, charger0)
-    chargerStateMachine1 = ChargerStateMachine(1, charger0)
-    chargerStateMachine2 = ChargerStateMachine(2, charger0)
-    chargerStateMachine3 = ChargerStateMachine(3, charger0)
+    chargerStateMachine0 = ChargerStateMachine( charger0)
+    chargerStateMachine1 = ChargerStateMachine( charger1)
+    chargerStateMachine2 = ChargerStateMachine( charger2)
+    chargerStateMachine3 = ChargerStateMachine( charger3)
     chargerStateMachineArray = [chargerStateMachine0, chargerStateMachine1, chargerStateMachine2, chargerStateMachine3]
-    for i in chargerArray:
+    for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
         driver.wait_until_finished()
