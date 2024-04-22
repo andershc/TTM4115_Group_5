@@ -71,7 +71,7 @@ class ChargerStateMachine:
     def t_chargingState(self):
          print("Started charging on charger ", self.chargerId)
     def chargingState(self):
-        self.charger.chagneChargerState = "charging"
+        self.charger.changeChargerState = "charging"
         if self.cableConnected == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
@@ -124,7 +124,7 @@ class ChargerStateMachine:
     def t_errorState(self):
         print("error state")
     def errorState(self):
-        self.charger.chagneChargerState = "error"
+        self.charger.changeChargerState = "error"
         print("Charging error on ", self.charger.chargerId)
         run = True
         x = 0
@@ -136,7 +136,7 @@ class ChargerStateMachine:
     def t_finishedState(self):
         print("finished state")
     def finishedState(self):
-        self.charger.chagneChargerState = "finished"
+        self.charger.changeChargerState = "finished"
         print("Finished charging on charger ", self.charger.chargerId)
         run = True
         y = self.charger.chargerId * 2
@@ -151,7 +151,8 @@ class ChargerStateMachine:
     def t_idleState(self):
         print("idle state")
     def idleState(self):
-        self.charger.chagneChargerState = "idle"
+        print("idle state")
+        self.charger.changeChargerState = "idle"
         y = self.charger.chargerId
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
@@ -196,7 +197,7 @@ class Charger:
     def getChargerId(self):
         return self.chargerId
     
-    def chagneChargerState(self, state):
+    def changeChargerState(self, state):
         self.chargerState = state
     
     def connectCable(self):
