@@ -56,7 +56,7 @@ class ChargerServerLogic:
             "source": "charger_selected",
             "target": "selecting",
             "trigger": "disconnect_charger",
-            "effect": "send_status_update",
+            "effect": "disconnect",
         }  # Charger disconnected
         t5 = {
             "source": "charging",
@@ -103,7 +103,7 @@ class ChargerServerLogic:
         with open(file_path, "w") as file:
             json.dump(data, file)
 
-        self.show_chargers()
+        self.send_status_update()
 
     def pay(self):
         self._logger.debug("Paying")
@@ -177,6 +177,28 @@ class ChargerServerLogic:
 
     def cancel_charging(self):
         self._logger.debug("Cancelling charger for {}".format(self.name))
+
+    def disconnect(self):
+        # Update the status of the selected charger in the database
+        file_path = "server/db/chargers.json"
+        # Get name of state machine
+        email = self.name.split("_")[1]
+
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            for charger in data["chargers"]:
+                if charger["status"] == "OCCUPIED" and charger["startedBy"] == email:
+                    self._logger.debug(
+                        "Updating charger with ID {} to AVAILABLE".format(charger["id"])
+                    )
+                    charger["status"] = "AVAILABLE"
+                    charger["startedBy"] = None
+                    break
+
+        with open(file_path, "w") as file:
+            json.dump(data, file)
+
+        self.send_status_update()
 
 
 class ChargingSessionComponent:
@@ -482,7 +504,6 @@ class ChargingSessionComponent:
                 self.stm_driver.send(
                     message_id="disconnect_charger",
                     stm_id="session_" + payload["email"],
-                    args=[payload["charger"]],
                 )
 
                 return

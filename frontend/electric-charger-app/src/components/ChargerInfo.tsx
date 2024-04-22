@@ -43,6 +43,16 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
         console.log(`Stopping charging for charger ${chargerId}`);
     }
 
+    const handleDisconnectCharger = (chargerId: number) => {
+        const payload = {
+            command: "disconnect_charger",
+            charger: chargerId,
+            email: user?.email ?? ''
+        }
+        CLIENT.publish('ttm4115/team_05/command', JSON.stringify(payload));
+        console.log(`Disconnecting charger ${chargerId}`);
+    }
+
     return (
         <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
             <div className="md:flex">
@@ -53,12 +63,20 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
                     <p className="mt-2 text-gray-500">Started by: {charger.startedBy}</p>
                     {charger.startedAt !== "" && <p className="mt-2 text-gray-500">Started at: {charger.startedAt}</p>}
                     {charger.status !== "CHARGING" ? (
-                        <button
-                            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            onClick={openModal}
-                        >
-                            Start Charging
-                        </button>
+                        <div className='flex flex-row gap-2'>
+                            <button
+                                className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={openModal}
+                            >
+                                Start Charging
+                            </button>
+                            <button className='
+                                mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
+                                onClick={() => handleDisconnectCharger(charger.id)}
+                            >
+                                Disconnect Charger
+                            </button>
+                        </div>
                         ) : (
                         <div className='flex flex-row items-center gap-2'>
                             <img src="/ios-battery-charging.png" width={18}/>

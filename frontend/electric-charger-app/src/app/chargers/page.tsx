@@ -3,7 +3,7 @@
 import { ChargerInfo } from '@/components/ChargerInfo';
 import { UserContext } from '@/lib/UserContext';
 import { useRouter } from 'next/navigation';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { CLIENT } from '../../utils/client.js';
 
 export default function ChargersPage() {
@@ -113,10 +113,11 @@ const ChargerCard = ({ charger, handleSelectCharger, userEmail }: ChargerCardPro
   const effectiveStatus = charger.status === "CHARGING" && charger.startedBy !== userEmail ? "OCCUPIED" : charger.status;
 
   const backgroundColor = effectiveStatus === "AVAILABLE" ? "bg-green-400" :
-                          effectiveStatus === "FAULTY" ? "bg-yellow-400" :
-                          effectiveStatus === "CHARGING" ? "bg-blue-400" : "bg-red-400";
+                          effectiveStatus === "FAULTY" ? "bg-yellow-400" : 
+                          effectiveStatus === "CHARGING" ? "bg-red-400" : "bg-red-400";
   const cursor = effectiveStatus === "AVAILABLE" ? "cursor-pointer" : "cursor-not-allowed";
   const hover = effectiveStatus === "AVAILABLE" ? "hover:bg-green-500" : "";
+  const [eta, setEta] = useState<number>(0);
 
   const handleClick = () => {
     if (effectiveStatus === "AVAILABLE") {
@@ -124,11 +125,35 @@ const ChargerCard = ({ charger, handleSelectCharger, userEmail }: ChargerCardPro
     }
   };
 
+  useEffect(() => {
+    if (charger.status !== "CHARGING") return undefined;
+
+    const startTime = new Date(charger.startedAt).getTime();
+    const interval = setInterval(() => {
+      const currentTime = new Date().getTime();
+      const elapsedMs = currentTime - startTime;
+      setEta(Math.round(Math.max(0, (charger.totalChargingTime - elapsedMs))/1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [charger.status , charger.startedAt, charger.totalChargingTime]);
+
   return (
-    <div onClick={handleClick} className={`flex flex-col gap-2 ${backgroundColor} p-2 rounded ${cursor} ${hover}`}>
+    <div className='flex flex-col items-center justify-content gap-1'>
+      <img src='/car_charger.png' width={64}/>
+      <div className={`flex ${backgroundColor} h-2 w-full rounded`}/>
+      <div onClick={handleClick} className={`flex flex-col gap-2 bg-gray-400 p-2 rounded ${cursor} ${hover} h-28`}>
       <h3>{charger.name}</h3>
 
       <p>{effectiveStatus}</p>
+      {
+        effectiveStatus === "CHARGING" && charger.startedBy === userEmail && (
+          <p>ETA: {eta} sec</p>
+          
+        )
+      }
     </div>
+    </div>
+    
   );
 };
