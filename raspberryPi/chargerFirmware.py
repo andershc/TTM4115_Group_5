@@ -26,6 +26,14 @@ MQTT_PORT = 1883
 MQTT_TOPIC_INPUT = "ttm4115/team_05/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger_station_status"
 
+def on_connect(self, client, userdata, flags, rc):
+    # we just log that we are connected
+    print("on_connect:: connected with result code "+str(rc))
+
+def on_message(self, client, userdata, msg):
+    pass
+
+
 class ChargerStateMachine:
     def __init__(self, id, charger):
         self.charger = charger
@@ -255,12 +263,7 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             
         t.sleep(0.5)
 
-def on_connect(self, client, userdata, flags, rc):
-    # we just log that we are connected
-    print("on_connect:: connected with result code "+str(rc))
 
-def on_message(self, client, userdata, msg):
-    pass
 
 def enumerate_serial_devices():
     return set([item for item in list_ports.comports()])
