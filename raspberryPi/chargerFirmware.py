@@ -264,7 +264,7 @@ def on_message(self, client, userdata, msg):
 def enumerate_serial_devices():
     return set([item for item in list_ports.comports()])
 
-def check_charger_connection(chargerArray):
+def check_charger_connection():
     old_devices = enumerate_serial_devices()
     while True:
         devices = enumerate_serial_devices()
@@ -279,6 +279,7 @@ def check_charger_connection(chargerArray):
 
 
 def main():
+    '''
     mqtt_client = mqtt.Client()
     # callback methods
     mqtt_client.on_connect = on_connect
@@ -287,7 +288,7 @@ def main():
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
     # start the internal loop to process MQTT messages
     mqtt_client.loop_start()
-
+    
     charger0 = Charger(0, "idle", mqtt_client)
     charger1 = Charger(1, "idle", mqtt_client)
     charger2 = Charger(2, "idle", mqtt_client)
@@ -307,8 +308,9 @@ def main():
 
     
     selection = Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray))
-    check_connection = Thread(target=check_charger_connection(chargerArray))
-    selection.start()
+    '''
+    check_connection = Thread(target=check_charger_connection())
+    #selection.start()
     check_connection.start()
 
 main()
