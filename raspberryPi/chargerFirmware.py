@@ -7,6 +7,7 @@ import paho.mqtt.client as mqtt
 import logging
 from threading import Thread
 import json
+from serial.tools import list_ports
 #import server
 from stmpy import Machine, Driver
 
@@ -260,6 +261,21 @@ def on_connect(self, client, userdata, flags, rc):
 def on_message(self, client, userdata, msg):
     pass
 
+def enumerate_serial_devices():
+    return set([item for item in list_ports.comports()])
+
+def check_charger_connection(chargerArray):
+    old_devices = enumerate_serial_devices()
+    while True:
+        devices = enumerate_serial_devices()
+        added = devices.difference(old_devices)
+        removed = old_devices.difference(devices)
+        if added:
+            print ('added: {}'.format(added))
+        if removed:
+            print ('removed: {}'.format(removed))
+        t.sleep(1)
+
 
 
 def main():
@@ -291,6 +307,8 @@ def main():
 
     
     selection = Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray))
+    check_connection = Thread(target=check_charger_connection(chargerArray))
     selection.start()
+    check_connection.start()
 
 main()
