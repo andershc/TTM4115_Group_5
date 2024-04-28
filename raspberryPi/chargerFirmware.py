@@ -7,7 +7,7 @@ import paho.mqtt.client as mqtt
 import logging
 from threading import Thread
 import json
-from serial.tools import list_ports
+import usb.core
 #import server
 from stmpy import Machine, Driver
 
@@ -265,25 +265,46 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
 
 
 
-def enumerate_serial_devices():
-    return set([item for item in list_ports.comports()])
+def find_new_usb_devices():
+    devices = usb.core.find(find_all=True)
+    new_devices = []
+    for dev in devices:
+        if dev.idVendor == 0x1d6b or dev.idVendor == 0x2109: #0x2109 driver for keyboard should be ignored 
+            print("device is a hub")
+        elif dev.port_number not in new_devices: 
+            new_devices.append(dev.port_number)
+    new_devices.sort()
+    return new_devices
 
-def check_charger_connection():
-    old_devices = enumerate_serial_devices()
+def check_charger_connection(chargerArray):
+    new_devices = find_new_usb_devices()
+    old_devices = []
     while True:
-        devices = enumerate_serial_devices()
-        added = devices.difference(old_devices)
-        removed = old_devices.difference(devices)
-        if added:
-            print ('added: {}'.format(added))
-        if removed:
-            print ('removed: {}'.format(removed))
-        t.sleep(1)
-
-
+        added = [] 
+        removed = []
+        new_devices = find_new_usb_devices()
+        for dev in new_devices:
+            if dev not in old_devices:
+                print("Device added")
+                print(dev)
+                added.append(dev)
+        for dev in old_devices:
+            if dev not in new_devices:
+                print("Device removed")
+                print(dev)
+                removed.append(dev)
+        old_devices = new_devices
+        for i in added:
+            charger_array[i].connectCable()
+            print("Charger ", i, " cable connected")
+            print("--------------------")
+        for i in removed:
+            charger_array[i].disconnectCable()
+            print("Charger ", i, " cable disconnected")
+            print("--------------------")
+        t.sleep(5)
 
 def main():
-    '''
     mqtt_client = mqtt.Client()
     # callback methods
     mqtt_client.on_connect = on_connect
@@ -312,9 +333,9 @@ def main():
 
     
     selection = Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray))
-    '''
-    check_connection = Thread(target=check_charger_connection())
-    #selection.start()
+    
+    check_connection = Thread(target=check_charger_connection(chargerArray))
+    selection.start()
     check_connection.start()
 
 main()
