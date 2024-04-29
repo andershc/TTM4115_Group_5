@@ -82,14 +82,14 @@ class ChargerStateMachine:
     def chargingState(self):
         print("Started charging on charger ", self.charger.chargerId)
         self.charger.setChargeAmount(0)
-        """
+        
         payload = {
             "command": "update_status",
             "status": "CHARGING",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        """
+        
         self.charger.changeChargerState = "charging"
         if self.charger.cableConnected == False:
             sense.set_pixel(x, y, red)
@@ -150,19 +150,21 @@ class ChargerStateMachine:
     def errorState(self):
         
         self.charger.changeChargerState = "error"
-        """
+    
         payload = {
             "command": "update_status",
             "status":"FAULTY",
             "charger_id": self.charger.chargerId
         }
+        """
         payload = {
             "command": "charge_amount",
             "ammount": self.charger.getChargeAmount,
             "charger_id": self.charger.chargerId
         }
-        self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         """
+        self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
+        
         print("Charging error on ", self.charger.chargerId)
         run = True
         x = 0
@@ -186,14 +188,14 @@ class ChargerStateMachine:
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
             t.sleep(0.5)
-        """
+      
         payload = {
             "command": "update_status",
             "status":"OCCUPIED",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        """
+        
     def t_idleState(self):
         print("idle state")
     def idleState(self):
@@ -203,14 +205,12 @@ class ChargerStateMachine:
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y + 1, clear)
-        """
         payload = {
             "command": "update_status",
             "status":"IDLE",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        """
     
 class Charger:
     def __init__(self, id, state="idle",mqttClient=None):
@@ -219,7 +219,7 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
-        Thread(target=self.check_charger_connection()).start()
+        #Thread(target=self.check_charger_connection()).start() #works but hinder rest of functionality
 
     def getCableConnected(self):
         return self.cableConnected
@@ -319,7 +319,7 @@ def find_new_usb_devices():
     new_devices = []
     for dev in devices:
         if dev.idVendor == 0x1d6b or dev.idVendor == 0x2109: #0x2109 driver for keyboard should be ignored 
-            print("device is a hub")
+            continue
         elif dev.port_number not in new_devices: 
             new_devices.append(dev.port_number)
     new_devices.sort()
