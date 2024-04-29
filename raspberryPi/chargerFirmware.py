@@ -296,9 +296,9 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
                 charger = 0
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
-        elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
+        elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "idle":
             driver.send(message_id="t_chargingState",stm_id=charger)
-        elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "charging":
+        elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "charging":
             driver.send(message_id="t_finishedState",stm_id=charger)
         
         
