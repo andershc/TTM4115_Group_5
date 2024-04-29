@@ -219,6 +219,7 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
+        Thread(target=self.check_charger_connection()).start()
 
     def getCableConnected(self):
         return self.cableConnected
@@ -245,6 +246,36 @@ class Charger:
     def disconnectCable(self):
         # gjør noe her
         self.cableConnected = False
+
+    def check_charger_connection(self):
+        new_devices = find_new_usb_devices()
+        old_devices = []
+        while True:
+            added = [] 
+            removed = []
+            new_devices = find_new_usb_devices()
+            for dev in new_devices:
+                if dev not in old_devices:
+                    print("Device added")
+                    print(dev)
+                    added.append(dev)
+            for dev in old_devices:
+                if dev not in new_devices:
+                    print("Device removed")
+                    print(dev)
+                    removed.append(dev)
+            old_devices = new_devices
+            for i in added:
+                if i == self.getChargerId():
+                    self.connectCable()
+                print("Charger ", i, " cable connected")
+                print("--------------------")
+            for i in removed:
+                if i == self.getChargerId():
+                    self.disconnectCable()
+                print("Charger ", i, " cable disconnected")
+                print("--------------------")
+            t.sleep(1)
 
 def selectCharger(driver,chargerStateMachineArray,chargerArray):
     x = 0
@@ -294,36 +325,7 @@ def find_new_usb_devices():
     new_devices.sort()
     return new_devices
 
-def check_charger_connection(chargerArray):
-    new_devices = find_new_usb_devices()
-    old_devices = []
-    while True:
-        added = [] 
-        removed = []
-        new_devices = find_new_usb_devices()
-        for dev in new_devices:
-            if dev not in old_devices:
-                print("Device added")
-                print(dev)
-                added.append(dev)
-        for dev in old_devices:
-            if dev not in new_devices:
-                print("Device removed")
-                print(dev)
-                removed.append(dev)
-        old_devices = new_devices
-        print("devices:",old_devices)
-        print("Added: ", added)
-        print("Removed: ", removed)
-        for i in added:
-            chargerArray[i].connectCable()
-            print("Charger ", i, " cable connected")
-            print("--------------------")
-        for i in removed:
-            chargerArray[i].disconnectCable()
-            print("Charger ", i, " cable disconnected")
-            print("--------------------")
-        t.sleep(1)
+
 
 def main():
     
@@ -355,5 +357,5 @@ def main():
 
     
     Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
-    Thread(target=check_charger_connection(chargerArray)).start()
+    
 main()
