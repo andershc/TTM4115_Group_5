@@ -1,14 +1,18 @@
-from sense_hat import SenseHat
-import time as t
-import random
-import logging
-from threading import Thread
-import paho.mqtt.client as mqtt
-import logging
-from threading import Thread
-import json
-import usb.core
 from stmpy import Machine, Driver
+import paho.mqtt.client as mqtt
+from sense_hat import SenseHat
+from threading import Thread
+import time as t
+import usb.core
+import logging
+import random
+import json
+
+
+
+
+
+
 
 sense = SenseHat()
 
@@ -339,6 +343,7 @@ def main():
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
-    Thread(target=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
+    t1 = Thread(target=selectCharger(driver,chargerStateMachineArray,chargerArray))
+    t1.start()
     
 main()
