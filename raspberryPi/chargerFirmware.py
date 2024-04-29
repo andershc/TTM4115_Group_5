@@ -354,9 +354,6 @@ def main():
         driver.start()
 
     
-    selection = Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray))
-    check_connection = Thread(target=check_charger_connection(chargerArray))
-    selection.start()
-    check_connection.start()
-
+    Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
+    Thread(target=check_charger_connection(chargerArray)).start()
 main()
