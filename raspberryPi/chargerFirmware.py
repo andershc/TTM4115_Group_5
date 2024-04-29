@@ -219,7 +219,6 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
-        #Thread(target=self.check_charger_connection()).start() #works but hinder rest of functionality
 
     def getCableConnected(self):
         return self.cableConnected
@@ -247,33 +246,26 @@ class Charger:
         # gjør noe her
         self.cableConnected = False
 
+    def find_new_usb_devices(self):
+        devices = usb.core.find(find_all=True)
+        new_devices = []
+        for dev in devices:
+            if dev.idVendor == 0x1d6b or dev.idVendor == 0x2109: #0x2109 driver for keyboard should be ignored 
+                continue
+            elif dev.port_number not in new_devices: 
+                new_devices.append(dev.port_number)
+        new_devices.sort()
+        return new_devices
+    
     def check_charger_connection(self):
-        new_devices = find_new_usb_devices()
-        old_devices = []
-        while True:
-            added = [] 
-            removed = []
-            new_devices = find_new_usb_devices()
-            for dev in new_devices:
-                if dev not in old_devices:
-                    print("Device added")
-                    print(dev)
-                    added.append(dev)
-            for dev in old_devices:
-                if dev not in new_devices:
-                    print("Device removed")
-                    print(dev)
-                    removed.append(dev)
-            old_devices = new_devices
-            for i in added:
-                if i == self.getChargerId():
-                    self.connectCable()
-                print("Charger ", i, " cable connected")
+            connected_devices = self.find_new_usb_devices()
+            if self.getChargerId() in connected_devices :
+                self.connectCable()
+                print("Charger ", self.getChargerId, " cable connected")
                 print("--------------------")
-            for i in removed:
-                if i == self.getChargerId():
-                    self.disconnectCable()
-                print("Charger ", i, " cable disconnected")
+            if self.getChargerId() not in connected_devices:
+                self.disconnectCable()
+                print("Charger ", self.getChargerId, " cable disconnected")
                 print("--------------------")
             t.sleep(1)
 
@@ -307,6 +299,7 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
+            chargerArray[charger].check_charger_connection()
             if chargerArray[charger].getChargerState() == "charging":
                 driver.send(message_id="t_finishedState",stm_id=charger)
             driver.send(message_id="t_chargingState",stm_id=charger)
@@ -314,16 +307,7 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
 
 
 
-def find_new_usb_devices():
-    devices = usb.core.find(find_all=True)
-    new_devices = []
-    for dev in devices:
-        if dev.idVendor == 0x1d6b or dev.idVendor == 0x2109: #0x2109 driver for keyboard should be ignored 
-            continue
-        elif dev.port_number not in new_devices: 
-            new_devices.append(dev.port_number)
-    new_devices.sort()
-    return new_devices
+
 
 
 
@@ -354,8 +338,6 @@ def main():
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
-
-    
     Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
     
 main()
