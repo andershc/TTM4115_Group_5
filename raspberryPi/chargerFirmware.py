@@ -269,7 +269,6 @@ class Charger:
                 print(self.cableConnected)
                 print("Charger ", self.getChargerId, " cable disconnected")
                 print("--------------------")
-            t.sleep(1)
 
 def selectCharger(driver,chargerStateMachineArray,chargerArray):
     x = 0
@@ -302,10 +301,12 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
             chargerArray[charger].check_charger_connection()
-            driver.send(message_id="t_chargingState",stm_id=charger)
+            if chargerArray[charger].getCableConnected() == True:
+                driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "charging":
             chargerArray[charger].check_charger_connection()
-            driver.send(message_id="t_finishedState",stm_id=charger)
+            if chargerArray[charger].getCableConnected() == True:
+                driver.send(message_id="t_chargingState",stm_id=charger)
         
         
         t.sleep(0.5)
