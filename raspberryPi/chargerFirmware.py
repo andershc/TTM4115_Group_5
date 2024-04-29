@@ -298,7 +298,7 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
             driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "charging":
-            driver.send(message_id="t_chargingState",stm_id=charger)
+            driver.send(message_id="t_finishedState",stm_id=charger)
         
         
         t.sleep(0.5)
