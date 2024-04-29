@@ -326,7 +326,7 @@ def check_charger_connection(chargerArray):
 
 def main():
     
-    mqtt_client = mqtt.Client()
+    mqtt_client = mqtt.Client(mqtt_client.CallbackAPIVersion.VERSION1, client_id)
     # callback methods
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
