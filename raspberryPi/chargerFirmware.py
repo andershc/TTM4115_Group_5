@@ -91,7 +91,7 @@ class ChargerStateMachine:
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         
         self.charger.changeChargerState = "charging"
-        if self.charger.cableConnected == False:
+        if self.charger.check_charger_connection == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
             t.sleep(0.5)
@@ -219,6 +219,7 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
+        self.check_charger_connection()
 
     def getCableConnected(self):
         return self.cableConnected
@@ -261,15 +262,10 @@ class Charger:
             connected_devices = self.find_new_usb_devices()
             if self.chargerId in connected_devices :
                 self.connectCable()
-                print(self.cableConnected)
-                print("Charger ", self.getChargerId, " cable connected")
-                print("--------------------")
             if self.chargerId not in connected_devices:
                 self.disconnectCable()
-                print(self.cableConnected)
-                print("Charger ", self.getChargerId, " cable disconnected")
-                print("--------------------")
-
+            print(self.cableConnected)
+            return self.cableConnected
 def selectCharger(driver,chargerStateMachineArray,chargerArray):
     x = 0
     y = 0
@@ -300,13 +296,9 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
-            chargerArray[charger].check_charger_connection()
-            if chargerArray[charger].getCableConnected() == True:
-                driver.send(message_id="t_chargingState",stm_id=charger)
+            driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "charging":
-            chargerArray[charger].check_charger_connection()
-            if chargerArray[charger].getCableConnected() == True:
-                driver.send(message_id="t_chargingState",stm_id=charger)
+            driver.send(message_id="t_chargingState",stm_id=charger)
         
         
         t.sleep(0.5)
