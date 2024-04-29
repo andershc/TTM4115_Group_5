@@ -259,12 +259,14 @@ class Charger:
     
     def check_charger_connection(self):
             connected_devices = self.find_new_usb_devices()
-            if self.getChargerId() in connected_devices :
+            if self.chargerId in connected_devices :
                 self.connectCable()
+                print(self.cableConnected)
                 print("Charger ", self.getChargerId, " cable connected")
                 print("--------------------")
-            if self.getChargerId() not in connected_devices:
+            if self.chargerId not in connected_devices:
                 self.disconnectCable()
+                print(self.cableConnected)
                 print("Charger ", self.getChargerId, " cable disconnected")
                 print("--------------------")
             t.sleep(1)
@@ -300,9 +302,12 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "idle":
             chargerArray[charger].check_charger_connection()
-            if chargerArray[charger].getChargerState() == "charging":
-                driver.send(message_id="t_finishedState",stm_id=charger)
             driver.send(message_id="t_chargingState",stm_id=charger)
+        elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].getChargerState() == "charging":
+            chargerArray[charger].check_charger_connection()
+            driver.send(message_id="t_finishedState",stm_id=charger)
+        
+        
         t.sleep(0.5)
 
 
