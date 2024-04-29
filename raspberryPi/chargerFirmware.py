@@ -312,6 +312,9 @@ def check_charger_connection(chargerArray):
                 print(dev)
                 removed.append(dev)
         old_devices = new_devices
+        print("devices:",old_devices)
+        print("Added: ", added)
+        print("Removed: ", removed)
         for i in added:
             chargerArray[i].connectCable()
             print("Charger ", i, " cable connected")
@@ -320,7 +323,7 @@ def check_charger_connection(chargerArray):
             chargerArray[i].disconnectCable()
             print("Charger ", i, " cable disconnected")
             print("--------------------")
-        t.sleep(5)
+        t.sleep(1)
 
 def main():
     
