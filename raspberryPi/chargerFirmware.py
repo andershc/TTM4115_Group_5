@@ -91,7 +91,8 @@ class ChargerStateMachine:
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         
         self.charger.changeChargerState = "charging"
-        self.charger.check_charger_connection()
+        t1 = Thread(target=self.charger.check_charger_connection()).start()
+        t1.join()
 
         if  self.charger.getCableConnected() == False:
             sense.set_pixel(x, y, red)
@@ -338,6 +339,6 @@ def main():
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
-    Thread(targer=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
+    Thread(target=selectCharger(driver,chargerStateMachineArray,chargerArray)).start()
     
 main()
