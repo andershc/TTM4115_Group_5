@@ -91,7 +91,9 @@ class ChargerStateMachine:
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         
         self.charger.changeChargerState = "charging"
-        if self.charger.check_charger_connection == False:
+        self.charger.check_charger_connection()
+
+        if  self.charger.getCableConnected() == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
             t.sleep(0.5)
@@ -219,7 +221,6 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
-        self.check_charger_connection()
 
     def getCableConnected(self):
         return self.cableConnected
@@ -259,13 +260,13 @@ class Charger:
         return new_devices
     
     def check_charger_connection(self):
-            connected_devices = self.find_new_usb_devices()
-            if self.chargerId in connected_devices :
-                self.connectCable()
-            if self.chargerId not in connected_devices:
-                self.disconnectCable()
-            print(self.cableConnected)
-            return self.cableConnected
+        connected_devices = self.find_new_usb_devices()
+        if self.chargerId in connected_devices :
+            self.connectCable()
+        if self.chargerId not in connected_devices:
+            self.disconnectCable()
+        print(self.getCableConnected())
+    
 def selectCharger(driver,chargerStateMachineArray,chargerArray):
     x = 0
     y = 0
