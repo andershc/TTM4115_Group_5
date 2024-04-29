@@ -216,7 +216,7 @@ class ChargerStateMachine:
     
 class Charger:
     def __init__(self, id, state="idle",mqttClient=None):
-        self.cableConnected = True
+        self.cableConnected = False
         self.chargerId = id
         self.chargerState = state
         self.mqttClient = mqttClient
@@ -260,6 +260,7 @@ class Charger:
         return new_devices
     
     def check_charger_connection(self):
+        print(self.getCableConnected())
         connected_devices = self.find_new_usb_devices()
         if self.chargerId in connected_devices :
             self.connectCable()
@@ -300,8 +301,8 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "charging":
             driver.send(message_id="t_finishedState",stm_id=charger)
-        
-        
+        else:
+            print("No action")
         t.sleep(0.5)
 
 
