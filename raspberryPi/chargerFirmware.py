@@ -106,8 +106,13 @@ class ChargerStateMachine:
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
             print("Cable not connected on charger ", self.charger.chargerId)
+            sense.set_pixel(x, y, clear)
+            sense.set_pixel(x, y + 1, clear)
             self.t_idleState()
-            
+            return
+        
+
+        
             
 
      
