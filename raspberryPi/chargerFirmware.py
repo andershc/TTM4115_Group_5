@@ -88,6 +88,10 @@ class ChargerStateMachine:
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         '''
+        run = True
+        x = 1
+        y = self.charger.chargerId * 2
+        initialSOC = random.randint(1, 6)
         self.charger.changeChargerState = "charging"
         self.charger.check_charger_connection()
         if  self.charger.getCableConnected() == False:
@@ -106,10 +110,7 @@ class ChargerStateMachine:
             self.t_idleState()
             
 
-        run = True
-        x = 1
-        y = self.charger.chargerId * 2
-        initialSOC = random.randint(1, 6)
+     
         for i in range(0, initialSOC):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
@@ -256,13 +257,13 @@ class Charger:
         return new_devices
     
     def check_charger_connection(self):
-        print(self.getCableConnected())
+        
         connected_devices = self.find_new_usb_devices()
         if self.chargerId in connected_devices :
             self.connectCable()
         if self.chargerId not in connected_devices:
             self.disconnectCable()
-        print(self.getCableConnected())
+       
     
 def selectCharger(driver,chargerArray):
     x = 0
