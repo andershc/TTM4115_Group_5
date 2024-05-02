@@ -266,7 +266,7 @@ class Charger:
             self.disconnectCable()
         print(self.getCableConnected())
     
-def selectCharger(driver,chargerStateMachineArray,chargerArray):
+def selectCharger(driver,chargerArray):
     x = 0
     y = 0
     charger = 0
@@ -296,10 +296,10 @@ def selectCharger(driver,chargerStateMachineArray,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "idle":
-            print("charger is not charging starting charger")
+            print("charger ",charger," is not charging starting charger")
             driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "charging":
-            print("charger is charging finishing charger")
+            print("charger ",charger," is charging finishing charger")
             driver.send(message_id="t_finishedState",stm_id=charger)
         t.sleep(0.5)
 
@@ -336,7 +336,9 @@ def main():
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
+    selectCharger(driver,chargerArray)
+    '''
     t1 = Thread(target=selectCharger(driver,chargerStateMachineArray,chargerArray))
     t1.start()
-    
+    '''
 main()
