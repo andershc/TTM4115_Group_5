@@ -1,5 +1,5 @@
 from stmpy import Machine, Driver
-import paho.mqtt.client as mqtt
+#import paho.mqtt.client as mqtt
 from sense_hat import SenseHat
 from threading import Thread
 import time as t
@@ -15,7 +15,7 @@ green = (0, 255, 0)
 blue = (0, 0, 255)
 white = (255, 255, 255)
 clear = (0, 0, 0)
-
+'''
 #MQTT settings
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
@@ -28,7 +28,7 @@ def on_connect(self, client, userdata, flags, rc):
 
 def on_message(self, client, userdata, msg):
     pass
-
+'''
 
 class ChargerStateMachine:
     def __init__(self, id, charger):
@@ -80,14 +80,14 @@ class ChargerStateMachine:
     def chargingState(self):
         print("Started charging on charger ", self.charger.chargerId)
         self.charger.setChargeAmount(0)
-        
+        '''
         payload = {
             "command": "update_status",
             "status": "CHARGING",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        
+        '''
         self.charger.changeChargerState = "charging"
         self.charger.check_charger_connection()
         if  self.charger.getCableConnected() == False:
@@ -149,24 +149,21 @@ class ChargerStateMachine:
     def errorState(self):
         
         self.charger.changeChargerState = "error"
-    
+        """
         payload = {
             "command": "update_status",
             "status":"FAULTY",
             "charger_id": self.charger.chargerId
         }
-        """
+        
         payload = {
             "command": "charge_amount",
             "ammount": self.charger.getChargeAmount,
             "charger_id": self.charger.chargerId
         }
-        """
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        
+        """
         print("Charging error on ", self.charger.chargerId)
-        run = True
-        x = 0
         y = self.charger.chargerId * 2
         for i in range(1, 8):
             sense.set_pixel(i, y, red)
@@ -178,7 +175,6 @@ class ChargerStateMachine:
     def finishedState(self):
         self.charger.changeChargerState = "finished"
         print("Finished charging on charger ", self.charger.chargerId)
-        run = True
         y = self.charger.chargerId * 2
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
@@ -205,19 +201,21 @@ class ChargerStateMachine:
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y + 1, clear)
+        '''
         payload = {
             "command": "update_status",
             "status":"IDLE",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-    
+        '''
+
 class Charger:
-    def __init__(self, id, state="idle",mqttClient=None):
+    def __init__(self, id, state="idle"):
         self.cableConnected = False
         self.chargerId = id
         self.chargerState = state
-        self.mqttClient = mqttClient
+        #self.mqttClient = mqttClient
         self.chargeAmount = 0
 
     def getCableConnected(self):
@@ -310,7 +308,7 @@ def selectCharger(driver,chargerArray):
 
 
 def main():
-    
+    '''
     mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
     # callback methods
     mqtt_client.on_connect = on_connect
@@ -319,11 +317,11 @@ def main():
     mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
     # start the internal loop to process MQTT messages
     mqtt_client.loop_start()
-
-    charger0 = Charger(0, "idle", mqtt_client)
-    charger1 = Charger(1, "idle", mqtt_client)
-    charger2 = Charger(2, "idle", mqtt_client)
-    charger3 = Charger(3, "idle", mqtt_client)
+    '''
+    charger0 = Charger(0, "idle")
+    charger1 = Charger(1, "idle")
+    charger2 = Charger(2, "idle")
+    charger3 = Charger(3, "idle")
     chargerArray = [charger0, charger1, charger2, charger3]   
 
     driver = Driver()
@@ -337,7 +335,7 @@ def main():
         driver.add_machine(i.stm)
         driver.start()
     
-    t1 = Thread(targer=selectCharger(driver,chargerArray))
-    t1.start()
+    select_charger = Thread(targer=selectCharger(driver,chargerArray))
+    select_charger.start()
     
 main()
