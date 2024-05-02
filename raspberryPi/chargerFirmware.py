@@ -336,9 +336,8 @@ def main():
     for i in chargerStateMachineArray:
         driver.add_machine(i.stm)
         driver.start()
-    selectCharger(driver,chargerArray)
-    '''
-    t1 = Thread(target=selectCharger(driver,chargerStateMachineArray,chargerArray))
+    
+    t1 = Thread(targer=selectCharger(driver,chargerArray))
     t1.start()
-    '''
+    
 main()
