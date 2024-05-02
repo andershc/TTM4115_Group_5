@@ -8,23 +8,17 @@ import logging
 import random
 import json
 
-
-
-
-
-
-
+#stup for sensehat
 sense = SenseHat()
-
 red = (255, 0, 0)
 green = (0, 255, 0)
 blue = (0, 0, 255)
 white = (255, 255, 255)
 clear = (0, 0, 0)
 
+#MQTT settings
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
-
 MQTT_TOPIC_INPUT = "ttm4115/team_05/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger_station_status"
 
@@ -95,9 +89,7 @@ class ChargerStateMachine:
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
         
         self.charger.changeChargerState = "charging"
-        t1 = Thread(target=self.charger.check_charger_connection()).start()
-        t1.join()
-
+        self.charger.check_charger_connection()
         if  self.charger.getCableConnected() == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
@@ -195,14 +187,15 @@ class ChargerStateMachine:
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
             t.sleep(0.5)
-      
+        '''
         payload = {
             "command": "update_status",
             "status":"OCCUPIED",
             "charger_id": self.charger.chargerId
         }
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-        
+        '''
+
     def t_idleState(self):
         print("idle state")
     def idleState(self):
