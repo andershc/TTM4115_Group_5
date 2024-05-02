@@ -93,7 +93,6 @@ class ChargerStateMachine:
         y = self.charger.chargerId * 2
         initialSOC = random.randint(1, 6)
         self.charger.changeChargerState = "charging"
-        self.charger.check_charger_connection()
         if  self.charger.getCableConnected() == False:
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
@@ -108,6 +107,7 @@ class ChargerStateMachine:
             sense.set_pixel(x, y + 1, white)
             print("Cable not connected on charger ", self.charger.chargerId)
             self.t_idleState()
+            
             
 
      
@@ -257,11 +257,12 @@ class Charger:
         return new_devices
     
     def check_charger_connection(self):
-        
         connected_devices = self.find_new_usb_devices()
         if self.chargerId in connected_devices :
+            print("Charger",self.chargerId," connected")
             self.connectCable()
         if self.chargerId not in connected_devices:
+            print("Charger",self.chargerId," disconnected")
             self.disconnectCable()
        
     
@@ -295,10 +296,12 @@ def selectCharger(driver,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "idle":
-            print("charger ",charger," is not charging starting charger")
+            chargerArray[charger].check_charger_connection()
+            t.sleep(0.5)
             driver.send(message_id="t_chargingState",stm_id=charger)
         elif event.direction == "middle" and event.action == "pressed" and chargerArray[charger].chargerState == "charging":
-            print("charger ",charger," is charging finishing charger")
+            chargerArray[charger].check_charger_connection()
+            t.sleep(0.5)
             driver.send(message_id="t_finishedState",stm_id=charger)
         t.sleep(0.5)
 
