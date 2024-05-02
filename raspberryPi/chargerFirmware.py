@@ -94,6 +94,7 @@ class ChargerStateMachine:
         initialSOC = random.randint(1, 6)
         self.charger.changeChargerState = "charging"
         if  self.charger.getCableConnected() == False:
+            #add something here
             sense.set_pixel(x, y, red)
             sense.set_pixel(x, y + 1, red)
             t.sleep(0.5)
@@ -108,14 +109,8 @@ class ChargerStateMachine:
             print("Cable not connected on charger ", self.charger.chargerId)
             sense.set_pixel(x, y, clear)
             sense.set_pixel(x, y + 1, clear)
-            self.t_idleState()
-            return
-        
+            self.send(message_id="t_idleState",stm_id=self.id)
 
-        
-            
-
-     
         for i in range(0, initialSOC):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
@@ -129,7 +124,8 @@ class ChargerStateMachine:
         chargeTime = 0
         is_error = random.randint(0, 11)
         if is_error == 5:
-            self.t_errorState()
+            #add something here
+            self.send(message_id="t_errorState",stm_id=self.id)
         while run:
             while chargeTime != 5:
                 sense.set_pixel(x, y, clear)
@@ -317,6 +313,11 @@ def selectCharger(driver,chargerArray):
 
 
 def main():
+    #TODO: 
+    #Add MQTT functionality
+    #Fix not changing states when getting an error or in charging state and not connected
+
+
     '''
     mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
     # callback methods
