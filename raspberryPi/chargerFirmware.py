@@ -216,6 +216,7 @@ class Charger:
         self.chargerState = state
         self.mqttClient = mqttClient
         self.chargeAmount = 0
+        #run connection checker in new thread
 
     def getCableConnected(self):
         return self.cableConnected
@@ -256,12 +257,16 @@ class Charger:
     
     def check_charger_connection(self):
         connected_devices = self.find_new_usb_devices()
+        prev_state = self.cableConnected
         if self.chargerId in connected_devices :
             print("Charger",self.chargerId," connected")
             self.connectCable()
         if self.chargerId not in connected_devices:
             print("Charger",self.chargerId," disconnected")
             self.disconnectCable()
+        if prev_state != self.cableConnected:
+            print("Charger",self.chargerId," changed state")
+            #send mqtt message
        
     
 def selectCharger(driver,chargerArray):
