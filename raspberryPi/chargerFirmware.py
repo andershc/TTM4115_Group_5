@@ -20,20 +20,14 @@ clear = (0, 0, 0)
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
 MQTT_TOPIC_INPUT = "ttm4115/team_05/command"
-MQTT_TOPIC_OUTPUT = "ttm4115/team_05/charger_station_status"
+MQTT_TOPIC_MANAGE_CHARGER = "ttm4115/team_05/manage_charger"
+MQTT_TOPIC_OUTPUT = "ttm4115/team_05/command"
 
-def on_connect(self, client, userdata, flags, rc):
-        # we just log that we are connected
-        self._logger.debug("MQTT connected to {}".format(client))
-
-def on_message(self, client, userdata, msg):
-    pass
-
-
+         
 class ChargerStateMachine:
     def __init__(self, id, charger):
         self.charger = charger
-        self.id = id
+        self.id = str(id)
         t_init = {
             "source": "initial",
             "target": "s_idle",
@@ -45,6 +39,13 @@ class ChargerStateMachine:
             "target": "s_charging",
             "trigger": "t_chargingState",
             "effect": "chargingState",
+        } 
+
+        t_idle_to_error = {
+            "source": "s_error",
+            "target": "s_idle",
+            "trigger": "t_errorState",
+            "effect": "errorState",
         } 
             
         t_charging_to_error= {
@@ -63,9 +64,10 @@ class ChargerStateMachine:
         t_charging_to_finished= {
             "source": "s_charging",
             "target": "s_finished",
-            "trigger": "t_finished",
+            "trigger": "t",
             "effect": "finishedState",
         }  
+        
 
         t_finished_to_idle= {
             "source": "s_finished",
@@ -73,14 +75,14 @@ class ChargerStateMachine:
             "trigger": "t_idleState",
             "effect": "idleState",
         }
-        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_charging_to_finished,t_finished_to_idle], obj=self, name=id)
+        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_idle_to_error,t_charging_to_finished,t_finished_to_idle], obj=self, name=self.id)
    
     def t_chargingState(self):
          print("Started charging on charger ", self.charger.chargerId)
     def chargingState(self):
         print("Started charging on charger ", self.charger.chargerId)
-        self.charger.changeChargerState = "charging"
-        self.mqttSendState("CHARGING")
+        self.charger.chargerState =  "charging"
+        
         
         #setup for charging
         self.charger.setChargeAmount(0)
@@ -88,38 +90,13 @@ class ChargerStateMachine:
         x = 1
         y = self.charger.chargerId * 2
         
-        #check for connected cable
-        if  self.charger.getCableConnected() == False:
-            #add something here
-            sense.set_pixel(x, y, red)
-            sense.set_pixel(x, y + 1, red)
-            t.sleep(0.5)
-            sense.set_pixel(x, y, white)
-            sense.set_pixel(x, y + 1, white)
-            t.sleep(0.5)
-            sense.set_pixel(x, y, red)
-            sense.set_pixel(x, y + 1, red)
-            t.sleep(0.5)
-            sense.set_pixel(x, y, white)
-            sense.set_pixel(x, y + 1, white)
-            print("Cable not connected on charger ", self.charger.chargerId)
-            sense.set_pixel(x, y, clear)
-            sense.set_pixel(x, y + 1, clear)
-            self.send(message_id="t_idleState",stm_id=self.id)
-
-        #random chance for error
-        is_error = random.randint(0, 11)
-        if is_error == 5:
-            #add something here
-            self.send(message_id="t_errorState",stm_id=self.id)
-        
         #setup for charging
         initialSOC = random.randint(1, 6)
         currentSOC = initialSOC
         chargeTime = 0
 
         #select random intitial state of charge
-        for i in range(0, initialSOC):
+        for i in range(1, initialSOC):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
             x = i
@@ -128,7 +105,8 @@ class ChargerStateMachine:
         sense.set_pixel(0, y, white)
         sense.set_pixel(0, y + 1, white)
         
-
+        #set the charge amount (what you will pay for)
+        self.mqttSendState("CHARGING",(9-currentSOC)*7.5*1000)
         #run charging
         while run:
             #time for one charge step 7.5s
@@ -143,19 +121,16 @@ class ChargerStateMachine:
             x = x + 1
             chargeTime = 0
             currentSOC = x
-            #set the charge amount (what you will pay for)
-            self.charger.setChargeAmount(currentSOC-initialSOC)
+            
             #when x == 8 the charging is finished max charging time is 7.5s*8 = 60s
             if x == 8:
                 run = False
-
-        #goto finished state
-        self.t_finishedState()
+        self.stm.start_timer("t", 100)
     
     def t_errorState(self):
         print("error state")
     def errorState(self):
-        self.charger.changeChargerState = "error"
+        self.charger.chargerState = "error"
         self.mqttSendState("FAULTY")
         print("Charging error on ", self.charger.chargerId)
         y = self.charger.chargerId * 2
@@ -168,45 +143,37 @@ class ChargerStateMachine:
     def t_finishedState(self):
         print("finished state")
     def finishedState(self):
-        self.charger.changeChargerState = "finished"
+        self.charger.chargerState = "finished"
         print("Finished charging on charger ", self.charger.chargerId)
         y = self.charger.chargerId * 2
         for i in range(1, 8):
-            sense.set_pixel(i, y, clear)
-            sense.set_pixel(i, y + 1, clear)
-        for i in range(1, self.charger.getChargeAmount()):
             sense.set_pixel(i, y, green)
             sense.set_pixel(i, y + 1, green)
             t.sleep(0.5)
 
-        self.mqttSendChargeAmount(self.charger.getChargeAmount())
-        self.mqttSendState("OCCUPIED")
+        #self.mqttSendChargeAmount(self.charger.getChargeAmount())
+        self.mqttSendState("FINISHED")
 
     def t_idleState(self):
         print("idle state")
     def idleState(self):
         print("idle state")
-        self.charger.changeChargerState = "idle"
+        self.charger.chargerState = "idle"
         y = self.charger.chargerId
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y + 1, clear)
-        self.mqttSendState("IDLE")
+        self.mqttSendState("AVAILABLE")
 
-    def mqttSendState(self, status):
+    def mqttSendState(self, status,amount=0):
+        print(status)
         payload = {
             "command": "update_status",
             "status": status,
+            "duration": amount,
             "charger_id": self.charger.chargerId
         }
-        self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
-
-    def mqttSendChargeAmount(self, amount):
-        payload = {
-            "command": "charge_amount",
-            "amount": amount,
-            "charger_id": self.charger.chargerId
-        }
+        payload = json.dumps(payload)
         self.charger.mqttClient.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
 
 class Charger:
@@ -217,6 +184,8 @@ class Charger:
         self.mqttClient = mqttClient
         self.chargeAmount = 0
         #run connection checker in new thread
+        self.t = Thread(target=self.check_charger_connection)
+        self.t.start()
 
     def getCableConnected(self):
         return self.cableConnected
@@ -277,7 +246,7 @@ def selectCharger(driver,chargerArray):
     sense.set_pixel(x, y, white)
     sense.set_pixel(x, y + 1, white)
     while True:
-        chargerArray[charger].check_charger_connection()
+        
 
         event = sense.stick.wait_for_event()
         if event.direction == "up" and event.action == "pressed":
@@ -301,11 +270,34 @@ def selectCharger(driver,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed":
-            if chargerArray[charger].chargerState == "idle":
-                driver.send(message_id="t_chargingState",stm_id=charger)
-            if  chargerArray[charger].chargerState == "charging":
-                driver.send(message_id="t_finishedState",stm_id=charger)
-        t.sleep(0.5)
+            is_error = random.randint(0, 11)
+            #check for connected cable
+            if chargerArray[charger].chargerState == "finished":
+                driver.send(message_id="t_idleState",stm_id=str(charger))
+            elif  chargerArray[charger].getCableConnected() == False:
+                #add something here
+                sense.set_pixel(x+1, y, red)
+                sense.set_pixel(x+1, y + 1, red)
+                t.sleep(0.5)
+                sense.set_pixel(x+1, y, white)
+                sense.set_pixel(x+1, y + 1, white)
+                t.sleep(0.5)
+                sense.set_pixel(x+1, y, red)
+                sense.set_pixel(x+1, y + 1, red)
+                t.sleep(0.5)
+                sense.set_pixel(x+1, y, white)
+                sense.set_pixel(x+1, y + 1, white)
+                print("Cable not connected on charger ", chargerArray[charger].chargerId)
+                sense.set_pixel(x+1, y, clear)
+                sense.set_pixel(x+1, y + 1, clear)
+            elif is_error == 5:
+                #add something here
+                driver.send(message_id="t_errorState",stm_id=str(charger))
+            elif chargerArray[charger].chargerState == "idle":
+                driver.send(message_id="t_chargingState",stm_id=str(charger))
+            elif chargerArray[charger].chargerState == "charging":
+                driver.send(message_id="t_finished",stm_id=str(charger))
+            t.sleep(0.5)
 
 
 
@@ -313,42 +305,60 @@ def selectCharger(driver,chargerArray):
 
 
 
-def main():
+class Main:
     #TODO: 
     #Add MQTT functionality
     #Fix not changing states when getting an error or in charging state and not connected
-    
-    mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
-    # callback methods
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
-    # Connect to the broker
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-    # start the internal loop to process MQTT messages
-    mqtt_client.loop_start()
-    
-    #setup chargers
-    charger0 = Charger(0, "idle", mqtt_client)
-    charger1 = Charger(1, "idle", mqtt_client)
-    charger2 = Charger(2, "idle", mqtt_client)
-    charger3 = Charger(3, "idle", mqtt_client)
-    chargerArray = [charger0, charger1, charger2, charger3]   
-    
-    #setup state machines
-    chargerStateMachine0 = ChargerStateMachine(0,charger0)
-    chargerStateMachine1 = ChargerStateMachine(1, charger1)
-    chargerStateMachine2 = ChargerStateMachine(2, charger2)
-    chargerStateMachine3 = ChargerStateMachine(3, charger3)
-    chargerStateMachineArray = [chargerStateMachine0, chargerStateMachine1, chargerStateMachine2, chargerStateMachine3]
-    
-    #initiate state machines
-    driver = Driver()
-    for i in chargerStateMachineArray:
-        driver.add_machine(i.stm)
-        driver.start()
+    def __init__(self):
+        self.mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
+        # callback methods
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_message = self.on_message
+        # Connect to the broker
+        self.mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+        self.mqtt_client.subscribe(MQTT_TOPIC_MANAGE_CHARGER)
+        # start the internal loop to process MQTT messages
+        self.mqtt_client.loop_start()
+        
+        #setup chargers
+        charger0 = Charger(id=0, state="idle", mqttClient=self.mqtt_client)
+        charger1 = Charger(id=1, state="idle", mqttClient=self.mqtt_client)
+        charger2 = Charger(id=2, state="idle", mqttClient=self.mqtt_client)
+        charger3 = Charger(id=3, state="idle", mqttClient=self.mqtt_client)
+        self.chargerArray = [charger0, charger1, charger2, charger3]   
+        
+        #setup state machines
+        chargerStateMachine0 = ChargerStateMachine(0,charger0)
+        chargerStateMachine1 = ChargerStateMachine(1, charger1)
+        chargerStateMachine2 = ChargerStateMachine(2, charger2)
+        chargerStateMachine3 = ChargerStateMachine(3, charger3)
+        self.chargerStateMachineArray = [chargerStateMachine0, chargerStateMachine1, chargerStateMachine2, chargerStateMachine3]
+        
+        #initiate state machines
+        self.driver = Driver()
+        for i in self.chargerStateMachineArray:
+            self.driver.add_machine(i.stm)
+            self.driver.start()
+        #start select function    
+        select_charger = Thread(targer=selectCharger(self.driver,self.chargerArray))
+        select_charger.start()
+    def on_connect(self, client, userdata, flags,rc):
+        # we just log that we are connected
+        print("Connected to broker")
 
-    #start select function    
-    select_charger = Thread(targer=selectCharger(driver,chargerArray))
-    select_charger.start()
-    
-main()
+    def on_message(self, client, userdata, msg):
+        payload = json.loads(msg.payload.decode("utf-8"))
+        if msg.topic != MQTT_TOPIC_MANAGE_CHARGER:
+            return
+        else:
+            print(payload)
+            if payload["command"] == "start_charging":
+                self.driver.send(message_id="t_chargingState",stm_id=str(payload["charger_id"]))
+            if payload["command"] == "stop_charging":
+                if self.chargerArray[int(charger_id)].chargerState == "charging":
+                    self.driver.send(message_id="t_finished",stm_id=str(payload["charger_id"]))
+                if self.chargerArray[int(charger_id)].chargerState == "finished":
+                    self.driver.send(message_id="t_idle",stm_id=str(payload["charger_id"]))
+                
+   
+main = Main()
