@@ -53,9 +53,9 @@ export default function ChargersPage() {
 
   return (
     <main className="bg-gray-200 text-black flex flex-col items-center gap-2 ">
-      <h1>Electric Charger App</h1>
+      <h1 className="text-xl font-bold pb-2">Electric Charger App</h1>
       <p>Hello, {user?.email}!</p>
-      <h2>Your charging sessions:</h2>
+      {chargers.length > 0 && <h2 className='pb-5 text-lg font-bold'>Your charging sessions:</h2>}
       <div className="flex flex-row flex-wrap gap-2 items-center justify-center">
       {chargers.filter((charger: Charger) => charger.startedBy === user?.email).map((charger: Charger) => (
         <ChargerInfo key={charger.id} charger={charger} />

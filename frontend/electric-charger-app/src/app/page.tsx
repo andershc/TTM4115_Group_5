@@ -11,9 +11,9 @@ export default function Home() {
 
   return (
     <main className="flex flex-col bg-gray-200 items-center text-black">
-      <h1>Electric Charger App</h1>
+      <h1 className="text-xl font-bold">Electric Charger App</h1>
       {/* Login Component */}
-      <div className="flex flex-col gap-10 w-full items-center text-black">
+      <div className="flex flex-col gap-10 w-full items-center text-black pt-10">
         <label className="flex flex-col">
           <span>Email</span>
           <input type="email"  onChange={(e) => setEmail(e.target.value)} />

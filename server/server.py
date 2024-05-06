@@ -159,7 +159,6 @@ class ChargerServerLogic:
                     )
                     charger["status"] = "OCCUPIED"
                     charger["startedAt"] = None
-                    charger["totalChargingTime"] = None
                     break
 
         with open(file_path, "w") as file:
@@ -633,6 +632,7 @@ class ChargingSessionComponent:
                 elif status == "FINISHED":
                     # Update the status of the selected charger in the database, and update the state machine
                     email = ""
+                    duration = payload["duration"]
                     file_path = "server/db/chargers.json"
                     with open(file_path, "r") as file:
                         data = json.load(file)
@@ -641,7 +641,9 @@ class ChargingSessionComponent:
                                 email = charger["startedBy"]
                                 charger["status"] = "OCCUPIED"
                                 charger["startedAt"] = None
-                                charger["totalChargingTime"] = None
+                                if duration != None:
+                                    charger["totalChargingTime"] = duration
+
                                 break
 
                     with open(file_path, "w") as file:

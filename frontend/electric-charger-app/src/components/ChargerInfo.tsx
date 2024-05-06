@@ -33,16 +33,6 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
         return () => clearInterval(interval);
       }, [charger.status , charger.startedAt, charger.totalChargingTime]);
 
-    const handleStopCharging = (chargerId: number) => {
-        const payload = {
-            command: "stop_charging",
-            charger: chargerId,
-            email: user?.email ?? ''
-        }
-        CLIENT.publish('ttm4115/team_05/command', JSON.stringify(payload));
-        console.log(`Stopping charging for charger ${chargerId}`);
-    }
-
     const handleDisconnectCharger = (chargerId: number) => {
         const payload = {
             command: "disconnect_charger",
@@ -53,6 +43,7 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
         console.log(`Disconnecting charger ${chargerId}`);
     }
 
+
     return (
         <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
             <div className="md:flex">
@@ -60,22 +51,28 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
                     <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold">{charger.id}</div>
                     <a href="#" className="block mt-1 text-lg leading-tight font-medium text-black hover:underline">{charger.name}</a>
                     <p className="mt-2 text-gray-500">Status: {charger.status}</p>
-                    <p className="mt-2 text-gray-500">Started by: {charger.startedBy}</p>
-                    {charger.startedAt !== "" && <p className="mt-2 text-gray-500">Started at: {charger.startedAt}</p>}
+                    {charger.startedAt != null && charger.startedAt !== "" && <p className="mt-2 text-gray-500">Started at: {charger.startedAt}</p>}
                     {charger.status !== "CHARGING" ? (
-                        <div className='flex flex-row gap-2'>
-                            <button
-                                className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                onClick={openModal}
-                            >
-                                Start Charging
-                            </button>
-                            <button className='
-                                mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
-                                onClick={() => handleDisconnectCharger(charger.id)}
-                            >
-                                Disconnect Charger
-                            </button>
+                        <div className='flex flex-col gap-2'>
+                            <div className='flex flex-row gap-2'>
+                                
+                                <button
+                                    className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                    onClick={openModal}
+                                >
+                                    Start Charging
+                                </button>
+                                <button className='
+                                    mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
+                                    onClick={() => handleDisconnectCharger(charger.id)}
+                                >
+                                    Disconnect Charger
+                                </button>
+                                
+                            </div>
+                            {charger.totalChargingTime === 0 && charger.startedAt === null && (
+                                    <p className='text-red-600'>Cable not connected. Please plug in the charger to your car</p>
+                                )}
                         </div>
                         ) : (
                         <div className='flex flex-row items-center gap-2'>
@@ -83,10 +80,6 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
                             <div className="w-full bg-gray-200 rounded h-2.5">
                                 <div className="bg-blue-600 h-2.5 rounded" style={{ width: `${progress}%` }}></div>
                             </div>
-                            <button className='bg-red-500 hover:bg-red-700 text-white text-xsmall font-bold py-1 px-2 rounded'
-                                onClick={() => handleStopCharging(charger.id)}>
-                                Stop Charging
-                            </button>
                         </div>
                     )}
                 </div>
@@ -94,6 +87,7 @@ const ChargerInfo: React.FC<ChargerInfoProps> = ({ charger }) => {
             {isPaymentModalOpen && (
                 <PaymentModal closeModal={closeModal} handleStartCharging={handleStartCharging} chargerId={charger.id} />
             )}
+            
         </div>
     );
 };
