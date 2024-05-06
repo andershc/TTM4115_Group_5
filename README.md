@@ -7,19 +7,19 @@ This is a prototype with three main components serving as a proof of concept for
 
 ### Webapp
 
-The webapp is created with nextjs app router and uses noth TypeScript and Tailwind-CSS. To run the application navigate to electric-charger-app and run the following commands:
+The webapp is created with nextjs app router and uses noth TypeScript and Tailwind-CSS. To run the application do the following:
 
-```
-yarn install
-yarn run dev
-```
+1. Clone the repository: ``git clone https://github.com/your-username/TTM4115_Group_5.git``
+2. Navigate to the frontemd: ``cd frontend/electric-charger-app``
+3. Install the required dependencies: ``yarn install``
+4. Start the application: ``yarn run dev``
 
 ### Server
 
 The server is mainly an MQTT server with an HTTP aspect for some user management.
 
-To run the server navigate to /server and run the server.py file.
+To run the server navigate to /server and run the ``server.py`` file.
 
 ### Pi
 
-The charging station is represented by a program running on a Raspberry Pi. Run the program on a pi by navigating to /raspberryPi and run the chargerFirmware.py file.
+The charging station is represented by a program running on a Raspberry Pi. Run the program on a pi by navigating to /raspberryPi and run the ``chargerFirmware.py`` file.
