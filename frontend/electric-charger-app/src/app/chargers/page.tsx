@@ -110,17 +110,16 @@ type ChargerCardProps = {
 
 const ChargerCard = ({ charger, handleSelectCharger, userEmail }: ChargerCardProps) => {
   // Adjust the status based on charging state and who started the charging
-  const effectiveStatus = charger.status === "CHARGING" && charger.startedBy !== userEmail ? "OCCUPIED" : charger.status;
 
-  const backgroundColor = effectiveStatus === "AVAILABLE" ? "bg-green-400" :
-                          effectiveStatus === "FAULTY" ? "bg-yellow-400" : 
-                          effectiveStatus === "CHARGING" ? "bg-red-400" : "bg-red-400";
-  const cursor = effectiveStatus === "AVAILABLE" ? "cursor-pointer" : "cursor-not-allowed";
-  const hover = effectiveStatus === "AVAILABLE" ? "hover:bg-green-500" : "";
+  const backgroundColor = charger.status === "AVAILABLE" ? "bg-green-400" :
+                          charger.status === "FAULTY" ? "bg-yellow-400" : 
+                          charger.status === "CHARGING" ? "bg-red-400" : "bg-red-400";
+  const cursor = charger.status === "AVAILABLE" ? "cursor-pointer" : "cursor-not-allowed";
+  const hover = charger.status === "AVAILABLE" ? "hover:bg-green-500" : "";
   const [eta, setEta] = useState<number>(0);
 
   const handleClick = () => {
-    if (effectiveStatus === "AVAILABLE") {
+    if (charger.status === "AVAILABLE") {
       handleSelectCharger(charger.id.toString());
     }
   };
@@ -145,9 +144,9 @@ const ChargerCard = ({ charger, handleSelectCharger, userEmail }: ChargerCardPro
       <div onClick={handleClick} className={`flex flex-col gap-2 bg-gray-400 p-2 rounded ${cursor} ${hover} h-28`}>
       <h3>{charger.name}</h3>
 
-      <p>{effectiveStatus}</p>
+      <p>{charger.status}</p>
       {
-        effectiveStatus === "CHARGING" && charger.startedBy === userEmail && (
+        charger.status === "CHARGING" && (
           <p>ETA: {eta} sec</p>
           
         )

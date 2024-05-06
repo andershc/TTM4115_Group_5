@@ -15,6 +15,8 @@ MQTT_PORT = 1883
 MQTT_TOPIC_INPUT = "ttm4115/team_05/command"
 MQTT_TOPIC_OUTPUT = "ttm4115/team_05/answer"
 MQTT_CHARGER_STATUS = "ttm4115/team_05/charger_status"
+MQTT_CHARGER_STATION_STATUS = "ttm4115/team_05/charger_station_status"
+MQTT_MANAGE_CHARGER = "ttm4115/team_05/manage_charger"
 
 
 class ChargerServerLogic:
@@ -28,7 +30,6 @@ class ChargerServerLogic:
         self.component = component
         self.client = component.mqtt_client
 
-        # TODO: build the transitions
         t0 = {
             "source": "initial",
             "target": "selecting",
@@ -43,7 +44,7 @@ class ChargerServerLogic:
         t2 = {
             "source": "charging",
             "target": "charger_selected",
-            "trigger": "t",
+            "trigger": "t_stop_charging",
             "effect": "stop_charging",
         }  # Charging stopped
         t3 = {
@@ -128,14 +129,18 @@ class ChargerServerLogic:
                         "Updating charger with ID {} to CHARGING".format(charger["id"])
                     )
                     charger["status"] = "CHARGING"
-                    charger["startedAt"] = datetime.datetime.now().isoformat()
-                    charger["totalChargingTime"] = 20000
                     break
 
         with open(file_path, "w") as file:
             json.dump(data, file)
 
-        self.stm.start_timer("t", 20000)
+        # Publish the charger status to the user
+        payload = {
+            "command": "start_charging",
+            "charger_id": charger_id,
+        }
+
+        self.client.publish(MQTT_MANAGE_CHARGER, json.dumps(payload))
         self.send_status_update()
 
     def stop_charging(self):
@@ -193,11 +198,21 @@ class ChargerServerLogic:
                     )
                     charger["status"] = "AVAILABLE"
                     charger["startedBy"] = None
+                    self.client.publish(
+                        MQTT_MANAGE_CHARGER,
+                        json.dumps(
+                            {
+                                "command": "disconnect_charger",
+                                "charger_id": charger["id"],
+                            }
+                        ),
+                    )
                     break
 
         with open(file_path, "w") as file:
             json.dump(data, file)
 
+        # Publish the charger status to the user
         self.send_status_update()
 
 
@@ -267,6 +282,8 @@ class ChargingSessionComponent:
 
         payload = json.loads(msg.payload.decode("utf-8"))
         command = payload["command"]
+
+        self._logger.debug("Command is: {}".format(command))
 
         if command == "register_user":
             """
@@ -485,6 +502,13 @@ class ChargingSessionComponent:
                     stm_id="session_" + payload["email"],
                 )
 
+                self.mqtt_client.publish(
+                    MQTT_MANAGE_CHARGER,
+                    json.dumps(
+                        {"command": "stop_charging", "charger_id": payload["charger"]}
+                    ),
+                )
+
                 return
 
             self._logger.debug("Missing email in payload")
@@ -509,6 +533,146 @@ class ChargingSessionComponent:
                 return
 
             self._logger.debug("Missing email in payload")
+
+        elif command == "update_status":
+            """
+            Recieve a message that a charger has an error. Data should include the charger id.
+            Then update the charger status in the database to FAULTY and send a message to the users.
+            """
+            status = payload["status"]
+            if "charger_id" in payload:
+                self._logger.debug(
+                    "Charger with ID {} has an error".format(payload["charger_id"])
+                )
+                if status == "FAULTY":
+                    # Update the status of the selected charger in the database
+                    file_path = "server/db/chargers.json"
+                    with open(file_path, "r") as file:
+                        data = json.load(file)
+                        for charger in data["chargers"]:
+                            if charger["id"] == payload["charger_id"]:
+                                self._logger.debug(
+                                    "Updating charger with ID {} to FAULTY".format(
+                                        payload["charger_id"]
+                                    )
+                                )
+                                charger["status"] = "FAULTY"
+                                break
+
+                    with open(file_path, "w") as file:
+                        json.dump(data, file)
+
+                    self.send_status_update()
+
+                elif status == "AVAILABLE":
+                    # Update the status of the selected charger in the database
+                    file_path = "server/db/chargers.json"
+                    with open(file_path, "r") as file:
+                        data = json.load(file)
+                        for charger in data["chargers"]:
+                            if charger["id"] == payload["charger_id"]:
+                                self._logger.debug(
+                                    "Updating charger with ID {} to AVAILABLE".format(
+                                        payload["charger_id"]
+                                    )
+                                )
+                                charger["status"] = "AVAILABLE"
+                                charger["startedBy"] = None
+                                break
+
+                    with open(file_path, "w") as file:
+                        json.dump(data, file)
+
+                    self.send_status_update()
+
+                elif status == "CHARGING":
+                    # Update the status of the selected charger in the database
+                    file_path = "server/db/chargers.json"
+                    with open(file_path, "r") as file:
+                        data = json.load(file)
+                        for charger in data["chargers"]:
+                            if charger["id"] == payload["charger_id"]:
+                                self._logger.debug(
+                                    "Updating charger with ID {} to CHARGING".format(
+                                        payload["charger_id"]
+                                    )
+                                )
+                                charger["status"] = "CHARGING"
+                                charger["startedAt"] = (
+                                    datetime.datetime.now().isoformat()
+                                )
+                                charger["totalChargingTime"] = payload["duration"]
+
+                                break
+
+                    with open(file_path, "w") as file:
+                        json.dump(data, file)
+
+                    self.send_status_update()
+
+                elif status == "OCCUPIED":
+                    # Update the status of the selected charger in the database
+                    file_path = "server/db/chargers.json"
+                    with open(file_path, "r") as file:
+                        data = json.load(file)
+                        for charger in data["chargers"]:
+                            if charger["id"] == payload["charger_id"]:
+                                self._logger.debug(
+                                    "Updating charger with ID {} to OCCUPIED".format(
+                                        payload["charger_id"]
+                                    )
+                                )
+                                charger["status"] = "OCCUPIED"
+                                break
+
+                    with open(file_path, "w") as file:
+                        json.dump(data, file)
+
+                    self.send_status_update()
+
+                elif status == "FINISHED":
+                    # Update the status of the selected charger in the database, and update the state machine
+                    email = ""
+                    file_path = "server/db/chargers.json"
+                    with open(file_path, "r") as file:
+                        data = json.load(file)
+                        for charger in data["chargers"]:
+                            if charger["id"] == payload["charger_id"]:
+                                email = charger["startedBy"]
+                                charger["status"] = "OCCUPIED"
+                                charger["startedAt"] = None
+                                charger["totalChargingTime"] = None
+                                break
+
+                    with open(file_path, "w") as file:
+                        json.dump(data, file)
+
+                    # Get the stm if email is not empty
+                    if email != "" and email is not None:
+                        stm_id = "session_" + email
+                        self.stm_driver.send(
+                            message_id="t_stop_charging", stm_id=stm_id
+                        )
+
+                    self.send_status_update()
+
+                else:
+                    self._logger.debug(
+                        "Status {} is not valid for charger with ID {}".format(
+                            status, payload["charger_id"]
+                        )
+                    )
+
+            else:
+                self._logger.debug("Missing charger_id in payload")
+
+                return
+
+    def send_status_update(self):
+        file_path = "server/db/chargers.json"
+        with open(file_path, "r") as file:
+            data = json.load(file)
+            self.mqtt_client.publish(MQTT_CHARGER_STATUS, json.dumps(data))
 
     def stop(self):
         """
