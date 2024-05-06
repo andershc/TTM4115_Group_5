@@ -40,37 +40,46 @@ class ChargerStateMachine:
             "trigger": "t_chargingState",
             "effect": "chargingState",
         } 
+
         t_idle_to_error = {
             "source": "s_error",
             "target": "s_idle",
             "trigger": "t_errorState",
             "effect": "errorState",
         } 
+            
         t_charging_to_error= {
             "source": "s_charging",
             "target": "s_error",
             "trigger": "t_errorState",
             "effect": "errorState",
         }  
+        t_charging_to_idle= {
+            "source": "s_charging",
+            "target": "s_idle",
+            "trigger": "t_idleState",
+            "effect": "idleState",
+        }
+
         t_charging_to_finished= {
             "source": "s_charging",
             "target": "s_finished",
-            "trigger": "t_finishedState",
+            "trigger": "t",
             "effect": "finishedState",
         }  
+        
+
         t_finished_to_idle= {
             "source": "s_finished",
             "target": "s_idle",
             "trigger": "t_idleState",
             "effect": "idleState",
         }
-        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_idle_to_error,t_charging_to_finished,t_finished_to_idle], obj=self, name=self.id)
-        
+        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_idle_to_error,t_charging_to_finished,t_finished_to_idle], obj=self, name=self.id)
    
     def t_chargingState(self):
          print("Started charging on charger ", self.charger.chargerId)
     def chargingState(self):
-        
         print("Started charging on charger ", self.charger.chargerId)
         self.charger.chargerState =  "charging"
         
@@ -98,9 +107,26 @@ class ChargerStateMachine:
         
         #set the charge amount (what you will pay for)
         self.mqttSendState("CHARGING",(9-currentSOC)*7.5*1000)
-        self.charger.chargingLights(1,initialSOC)
         #run charging
-        
+        while run:
+            #time for one charge step 7.5s
+            while chargeTime != 5:
+                sense.set_pixel(x, y, clear)
+                sense.set_pixel(x, y + 1, clear)
+                t.sleep(0.5)
+                sense.set_pixel(x, y, green)
+                sense.set_pixel(x, y + 1, green)
+                t.sleep(1)
+                chargeTime = chargeTime + 1
+            x = x + 1
+            chargeTime = 0
+            currentSOC = x
+            
+            #when x == 8 the charging is finished max charging time is 7.5s*8 = 60s
+            if x == 8:
+                run = False
+        self.stm.start_timer("t", 100)
+    
     def t_errorState(self):
         print("error state")
     def errorState(self):
@@ -186,25 +212,6 @@ class Charger:
     def disconnectCable(self):
         # gjør noe her
         self.cableConnected = False
-    def chargingLights(self,x,y):
-        while self.chargerState == "charging":
-            #time for one charge step 7.5s
-            chargeTime = 0
-            while chargeTime != 5:
-                sense.set_pixel(x, y, clear)
-                sense.set_pixel(x, y + 1, clear)
-                t.sleep(0.5)
-                sense.set_pixel(x, y, green)
-                sense.set_pixel(x, y + 1, green)
-                t.sleep(1)
-                chargeTime = chargeTime + 1
-            x = x + 1
-            chargeTime = 0
-            
-            #when x == 8 the charging is finished max charging time is 7.5s*8 = 60s
-            if x == 8:
-                run = False
-    
 
     def find_new_usb_devices(self):
         devices = usb.core.find(find_all=True)
@@ -229,7 +236,8 @@ class Charger:
         if prev_state != self.cableConnected:
             print("Charger",self.chargerId," changed state")
             #send mqtt message
-
+       
+    
 def selectCharger(driver,chargerArray):
     x = 0
     y = 0
@@ -238,6 +246,8 @@ def selectCharger(driver,chargerArray):
     sense.set_pixel(x, y, white)
     sense.set_pixel(x, y + 1, white)
     while True:
+        
+
         event = sense.stick.wait_for_event()
         if event.direction == "up" and event.action == "pressed":
             sense.set_pixel(x, y, clear)
@@ -286,9 +296,14 @@ def selectCharger(driver,chargerArray):
             elif chargerArray[charger].chargerState == "idle":
                 driver.send(message_id="t_chargingState",stm_id=str(charger))
             elif chargerArray[charger].chargerState == "charging":
-                driver.send(message_id="t_finishedState",stm_id=str(charger))
-            driver.print_status()
+                driver.send(message_id="t_finished",stm_id=str(charger))
             t.sleep(0.5)
+
+
+
+
+
+
 
 class Main:
     #TODO: 
@@ -323,12 +338,10 @@ class Main:
         self.driver = Driver()
         for i in self.chargerStateMachineArray:
             self.driver.add_machine(i.stm)
-            self.driver.start() 
-        
+            self.driver.start()
         #start select function    
         select_charger = Thread(targer=selectCharger(self.driver,self.chargerArray))
         select_charger.start()
-
     def on_connect(self, client, userdata, flags,rc):
         # we just log that we are connected
         print("Connected to broker")
@@ -341,14 +354,11 @@ class Main:
             print(payload)
             if payload["command"] == "start_charging":
                 self.driver.send(message_id="t_chargingState",stm_id=str(payload["charger_id"]))
-            elif payload["command"] == "stop_charging":
-                self.driver.send(message_id="t_finishedState",stm_id=str(payload["charger_id"]))
-            elif payload["command"] == "disconnect_charger":
-                self.driver.send(message_id="t_idleState",stm_id=str(payload["charger_id"]))
-    
-
-
-            
+            if payload["command"] == "stop_charging":
+                if self.chargerArray[int(charger_id)].chargerState == "charging":
+                    self.driver.send(message_id="t_finished",stm_id=str(payload["charger_id"]))
+                if self.chargerArray[int(charger_id)].chargerState == "finished":
+                    self.driver.send(message_id="t_idle",stm_id=str(payload["charger_id"]))
                 
    
 main = Main()
