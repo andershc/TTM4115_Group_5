@@ -41,15 +41,15 @@ class ChargerStateMachine:
             "effect": "chargingState",
         } 
 
-        t_idle_to_error = {
+        t_error_to_idle = {
             "source": "s_error",
             "target": "s_idle",
-            "trigger": "t_errorState",
-            "effect": "errorState",
+            "trigger": "t_idleState",
+            "effect": "idleState",
         } 
             
-        t_charging_to_error= {
-            "source": "s_charging",
+        t_idle_to_error= {
+            "source": "s_idle",
             "target": "s_error",
             "trigger": "t_errorState",
             "effect": "errorState",
@@ -75,7 +75,7 @@ class ChargerStateMachine:
             "trigger": "t_idleState",
             "effect": "idleState",
         }
-        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_charging_to_error,t_charging_to_idle,t_idle_to_error,t_charging_to_finished,t_finished_to_idle], obj=self, name=self.id)
+        self.stm = Machine(transitions=[t_init,t_idle_to_charging, t_error_to_idle,t_charging_to_idle,t_idle_to_error,t_charging_to_finished,t_finished_to_idle], obj=self, name=self.id)
    
     def t_chargingState(self):
          print("Started charging on charger ", self.charger.chargerId)
@@ -159,7 +159,7 @@ class ChargerStateMachine:
     def idleState(self):
         print("idle state")
         self.charger.chargerState = "idle"
-        y = self.charger.chargerId
+        y = self.charger.chargerId*2
         for i in range(1, 8):
             sense.set_pixel(i, y, clear)
             sense.set_pixel(i, y + 1, clear)
@@ -225,17 +225,16 @@ class Charger:
         return new_devices
     
     def check_charger_connection(self):
-        connected_devices = self.find_new_usb_devices()
-        prev_state = self.cableConnected
-        if self.chargerId in connected_devices :
-            print("Charger",self.chargerId," connected")
-            self.connectCable()
-        if self.chargerId not in connected_devices:
-            print("Charger",self.chargerId," disconnected")
-            self.disconnectCable()
-        if prev_state != self.cableConnected:
-            print("Charger",self.chargerId," changed state")
-            #send mqtt message
+        while True:
+            connected_devices = self.find_new_usb_devices()
+            prev_state = self.cableConnected
+            if self.chargerId in connected_devices:
+                self.connectCable()
+            if self.chargerId not in connected_devices:
+                self.disconnectCable()
+            if prev_state != self.cableConnected:
+                print("Charger",self.chargerId," changed state")
+                #send mqtt message
        
     
 def selectCharger(driver,chargerArray):
@@ -270,10 +269,15 @@ def selectCharger(driver,chargerArray):
             sense.set_pixel(x, y, white)
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed":
-            is_error = random.randint(0, 11)
+            is_error = random.randint(0, 10)
             #check for connected cable
             if chargerArray[charger].chargerState == "finished":
                 driver.send(message_id="t_idleState",stm_id=str(charger))
+            elif chargerArray[charger].chargerState == "error":
+                driver.send(message_id="t_idleState",stm_id=str(charger))
+            elif y == 0 or is_error == 5:
+                #add something here
+                driver.send(message_id="t_errorState",stm_id=str(charger))
             elif  chargerArray[charger].getCableConnected() == False:
                 #add something here
                 sense.set_pixel(x+1, y, red)
@@ -290,13 +294,10 @@ def selectCharger(driver,chargerArray):
                 print("Cable not connected on charger ", chargerArray[charger].chargerId)
                 sense.set_pixel(x+1, y, clear)
                 sense.set_pixel(x+1, y + 1, clear)
-            elif is_error == 5:
-                #add something here
-                driver.send(message_id="t_errorState",stm_id=str(charger))
             elif chargerArray[charger].chargerState == "idle":
                 driver.send(message_id="t_chargingState",stm_id=str(charger))
             elif chargerArray[charger].chargerState == "charging":
-                driver.send(message_id="t_finished",stm_id=str(charger))
+                driver.send(message_id="t_finishedState",stm_id=str(charger))
             t.sleep(0.5)
 
 
@@ -353,12 +354,36 @@ class Main:
         else:
             print(payload)
             if payload["command"] == "start_charging":
-                self.driver.send(message_id="t_chargingState",stm_id=str(payload["charger_id"]))
-            if payload["command"] == "stop_charging":
-                if self.chargerArray[int(charger_id)].chargerState == "charging":
-                    self.driver.send(message_id="t_finished",stm_id=str(payload["charger_id"]))
-                if self.chargerArray[int(charger_id)].chargerState == "finished":
-                    self.driver.send(message_id="t_idle",stm_id=str(payload["charger_id"]))
+                x = 0
+                y = int(payload["charger_id"])*2
+                if  self.chargerArray[int(payload["charger_id"])].getCableConnected() == False:
+                    #add something here
+                    sense.set_pixel(x+1, y, red)
+                    sense.set_pixel(x+1, y + 1, red)
+                    t.sleep(0.5)
+                    sense.set_pixel(x+1, y, white)
+                    sense.set_pixel(x+1, y + 1, white)
+                    t.sleep(0.5)
+                    sense.set_pixel(x+1, y, red)
+                    sense.set_pixel(x+1, y + 1, red)
+                    t.sleep(0.5)
+                    sense.set_pixel(x+1, y, white)
+                    sense.set_pixel(x+1, y + 1, white)
+                    print("Cable not connected on charger ", self.chargerArray[int(payload["charger_id"])].chargerId)
+                    sense.set_pixel(x+1, y, clear)
+                    sense.set_pixel(x+1, y + 1, clear)
+                    payload = {
+                        "command": "update_status",
+                        "status": "FINISHED",
+                        "duration": 0,
+                        "charger_id": int(payload["charger_id"])
+                    }
+                    payload = json.dumps(payload)
+                    self.mqtt_client.publish(MQTT_TOPIC_OUTPUT, payload=payload, qos=0)
+                else:
+                    self.driver.send(message_id="t_chargingState",stm_id=str(payload["charger_id"]))
+            elif payload["command"] == "disconnect_charger":
+                self.driver.send(message_id="t_idleState",stm_id=str(payload["charger_id"]))
                 
    
 main = Main()
