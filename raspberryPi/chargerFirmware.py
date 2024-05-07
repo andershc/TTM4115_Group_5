@@ -270,13 +270,11 @@ def selectCharger(driver,chargerArray):
             sense.set_pixel(x, y + 1, white)
         elif event.direction == "middle" and event.action == "pressed":
             is_error = random.randint(0, 10)
-            #check for connected cable
             if chargerArray[charger].chargerState == "finished":
                 driver.send(message_id="t_idleState",stm_id=str(charger))
             elif chargerArray[charger].chargerState == "error":
                 driver.send(message_id="t_idleState",stm_id=str(charger))
-            elif y == 0 or is_error == 5:
-                #add something here
+            elif is_error == 5:
                 driver.send(message_id="t_errorState",stm_id=str(charger))
             elif  chargerArray[charger].getCableConnected() == False:
                 #add something here
@@ -307,9 +305,6 @@ def selectCharger(driver,chargerArray):
 
 
 class Main:
-    #TODO: 
-    #Add MQTT functionality
-    #Fix not changing states when getting an error or in charging state and not connected
     def __init__(self):
         self.mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1)
         # callback methods
